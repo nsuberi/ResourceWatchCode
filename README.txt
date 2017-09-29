@@ -34,13 +34,41 @@ the AWS CLI are here:
 * http://docs.aws.amazon.com/cli/latest/userguide/installing.html
 * http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
 
+~
+
 In order to run terminal commands that begin with gcloud or gsutil, you will
 need to install the Google Cloud SDK. Instructions for how to install and
 initialize the Google Cloud SDK are here:
 * https://cloud.google.com/sdk/docs/
 * https://cloud.google.com/sdk/docs/initializing
 
-~~~ 
+~
+
+In order to run terminal commands that begin with earthengine, you will need
+to install the earthengine python libraries.
+
+In your terminal, run:
+pip install google-api-python-client
+pip install earthengine-api
+earthengine authenticate
+
+~~~
+
+Several terminal commands in this notebook rely on using variables from the
+command line. There are different conventions for doing so when using
+Linux or Windows based operating systems.
+
+Ex. Linux (from ipython notebook) uses a single ($) symbol to invoke a variable value:
+import os
+os.environ["var_a"] = "hello"
+!echo $var_a
+
+Ex. Windows (from ipython notebook) uses two (%) symbols to invoke a variable value:
+import os
+os.environ["var_a"] = "hello"
+!echo %var_a%
+
+~~~
 
 For an explanation of how to get started using Docker and Amazon Web Services,
 see the walkthrough provided by Rutger Hofste:
