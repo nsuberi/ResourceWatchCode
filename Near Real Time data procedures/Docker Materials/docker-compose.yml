@@ -1,0 +1,17 @@
+## specify build context here
+
+version: "3"
+ 
+services:
+ 
+  # GISS Surface Temperature Analysis (GISTEMP)
+  cli_035:
+    build: 
+      context: ./nrt_datasets/cli_035_surface_temp_analysis/
+      dockerfile: Dockerfile
+
+  # Hazard Mapping System (HMS) Fire and Smoke Analysis
+  cli_037:
+    build: 
+      context: ./nrt_datasets/cli_037_smoke_plumes/
+      dockerfile: Dockerfile
