@@ -7,12 +7,16 @@ from contextlib import closing
 from netCDF4 import Dataset
 import rasterio
 import boto3
+import gzip
+import subprocess
+
 np.set_printoptions(threshold='nan')
 s3 = boto3.resource("s3")
 
 def dataDownload(): 
-    remote_path = 'ftp://ftp.cdc.noaa.gov/Datasets/noaaglobaltemp/'
-    last_file = 'air.mon.anom.nc'
+    remote_path = 'https://data.giss.nasa.gov/pub/gistemp/'
+    new_file_zipped = 'gistemp250.nc.gz'
+    new_file_orig = new_file_zipped[:-3]
 
     local_path = os.getcwd()
 
@@ -22,29 +26,31 @@ def dataDownload():
 
     #Download the file .nc
     #with closing(urllib.urlopen(remote_path+last_file)) as r:
-    with closing(urlopen(remote_path+last_file)) as r:
-        with open(last_file, 'wb') as f:
-            shutil.copyfileobj(r, f)
-
-    ncfile = Dataset(local_path+'/'+last_file)
+    with closing(urlopen(remote_path+new_file_zipped)) as r:
+        with gzip.open(r, "rb") as unzipped:
+            with open(new_file_orig, 'wb') as f:
+                shutil.copyfileobj(unzipped, f)
     
-    return last_file
+    # What is returned here -> will be "file"
+    print ('Downloaded')
+    return (new_file_orig)
 
 def netcdf2tif(dst,outFile):
     nc = Dataset(dst)
-    data = nc['air'][1,:,:]
+    data = nc['tempanomaly'][-1,:,:]
             
-    data[data < -40] = -99
-    data[data > 40] = -99
+    #data[data < -40] = -99
+    #data[data > 40] = -99
+    # This was causing an error?
     #print (data)
     
     # Return lat info
-    south_lat = -88.75
-    north_lat = 88.75
-
+    south_lat = -90
+    north_lat = 90
     # Return lon info
-    west_lon = -177.5
-    east_lon = 177.5
+    west_lon = -180
+    east_lon = 180
+
     # Transformation function
     transform = rasterio.transform.from_bounds(west_lon, south_lat, east_lon, north_lat, data.shape[1], data.shape[0])
     # Profile
@@ -62,17 +68,60 @@ def netcdf2tif(dst,outFile):
     with rasterio.open(outFile, 'w', **profile) as dst:
         dst.write(data.astype(profile['dtype']), 1)
 
-def s3Upload(outFile, bucket, folder):
+    print ('Converted')
+
+def cloudProcess(edited_file, cloud_folder, gee_asset_name):
+    
+    cloud_key = cloud_folder + edited_file
+    
+    s3Upload(edited_file, "wri-public-data", cloud_key)
+    loadToGoogleStorage(cloud_key)
+    loadToGEE(cloud_key, gee_asset_name, "temporary_band_info")
+    
+def s3Upload(edited_file, bucket, cloud_key):
     # Push to Amazon S3 instance
-    f = open(outFile,'rb')
-    s3.Object(bucket, folder + outFile).put(Body=f)
+    f = open(edited_file,'rb')
+    s3.Object(bucket, cloud_key).put(Body=f)
+    print ('Up on s3')
+
+def loadToGoogleStorage(cloud_key):
+    cmd = ["gsutil", 
+    "cp", 
+    "s3://wri-public-data/" + cloud_key,
+    "gs://resource-watch-public/" + cloud_key]
+
+    subprocess.check_output(cmd)
+    print ('Up on google storage')
+
+def loadToGEE(cloud_key, asset_name, band_info):
+    cmd = ["earthengine", "upload", "image",
+    "--asset_id", asset_name,
+    "gs://resource-watch-public/" + cloud_key,
+    "--pyramiding_policy=mode",
+    "-p", "band_names=" + band_info]
+
+    subprocess.check_output(cmd)
+    print ('GEE asset upload started')
+    print ('Check back to ensure ACL is set to public before attempting to connect to the back office')
+
+def cleanUp(orig_file, edited_file):
+    os.unlink(orig_file)
+    os.unlink(edited_file)
+    print('container process finished, container cleaned')
 
 # Execution
-outFile ='air_temo_anomalies.tif'
-print ('starting')
-file = dataDownload()
-print ('downloaded')
-netcdf2tif(file,outFile)
-print ('converted')
-s3Upload(outFile, "wri-public-data", "resourcewatch/raster/cli_035_surface_temp_analysis/")
-print ('finish')
+def main():
+    print ('starting')
+
+    orig_file = dataDownload()
+
+    edited_file = "cli_035_surface_temp_analysis_edit.tif"
+    netcdf2tif(orig_file,edited_file)
+
+    cloud_key = "resourcewatch/raster/cli_035_surface_temp_analysis/"
+    gee_asset_name = "users/resourcewatch/cli_035_surface_temp_analysis"
+    cloudProcess(edited_file, cloud_key, gee_asset_name)
+
+    cleanUp(orig_file, edited_file)
+
+main()

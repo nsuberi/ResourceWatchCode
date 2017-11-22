@@ -3,10 +3,12 @@
 version: "3"
  
 services:
- 
   # GISS Surface Temperature Analysis (GISTEMP)
   cli_035:
     image: dockermaterials_cli_035
+    secrets:
+      ec_pa
+      ec_id
     # This option now unsupported for v3: container_name: cli_035
     deploy:
       mode: replicated
@@ -37,6 +39,9 @@ services:
   # Hazard Mapping System (HMS) Fire and Smoke Analysis
   cli_037:
     image: dockermaterials_cli_037
+    secrets:
+      ec_pa
+      ec_id
     # This option now unsupported for v3: container_name: cli_037
     deploy:
       mode: replicated
@@ -63,3 +68,9 @@ services:
         failure_action: continue
         monitor: 60s
         max_failure_ratio: 0.3
+
+  secrets:
+    ec_pa:
+      external: true 
+    ec_id:
+      external: true
