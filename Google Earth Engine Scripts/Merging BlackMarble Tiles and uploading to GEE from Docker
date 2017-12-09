@@ -1,0 +1,66 @@
+## Enter the Google instance:
+# gcloud compute --project "resource-watch-gee" ssh --zone "us-east1-b" "instance-1"
+## Docker entry commands:
+# sudo docker run -it -u 0 -v $(pwd)/volume:/opt/python-script/data custom_gdal_python /bin/bash
+
+### Configure aws to remotely read files with vsicurl... could store these on Google Storage to minimize double representation
+aws configure
+
+### Cannot run this all at once (haven't figured that out yet)... otherwise the aws configure will try to take the text below as credentials
+
+### Gdal commands
+origin="wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/"
+
+for paath in $(aws s3 ls $origin);
+do
+  if [[ ${paath%/} == *"BlackMarble_2012"*"gray.tif" ]]; then
+    gdalwarp -overwrite -s_srs epsg:4326 -t_srs epsg:4326 -of vrt /vsicurl/https://wri-public-data.s3.amazonaws.com/resourcewatch/raster/ene_023_nighttime_lights/${paath%/} data/${paath%???}vrt
+  fi
+done
+
+gdalbuildvrt data/BlackMarble_2012.vrt data/BlackMarble_2012*
+
+# -b 1 only picks the first band... they are all three the same anyway
+gdal_translate -b 1 -co COMPRESS=LZW -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 -co tiled=Yes -of GTiff data/BlackMarble_2012.vrt data/BlackMarble_2012_edit.tif 
+
+
+for paath in $(aws s3 ls $origin);
+do
+  if [[ ${paath%/} == *"BlackMarble_2016"*"gray.tif" ]]; then
+    gdalwarp -overwrite -s_srs epsg:4326 -t_srs epsg:4326 -of vrt /vsicurl/https://wri-public-data.s3.amazonaws.com/resourcewatch/raster/ene_023_nighttime_lights/${paath%/} data/${paath%???}vrt
+  fi
+done
+
+gdalbuildvrt data/BlackMarble_2016.vrt data/BlackMarble_2016*
+
+# -b 1 only picks the first band... they are all three the same anyway
+gdal_translate -b 1 -co COMPRESS=LZW -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 -co tiled=Yes -of GTiff data/BlackMarble_2016.vrt data/BlackMarble_2016_edit.tif 
+
+
+aws s3 cp data/BlackMarble_2012_edit.tif s3://wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif
+aws s3 cp data/BlackMarble_2016_edit.tif s3://wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif
+
+
+## Run the following outside of the docker terminal... don't have gsutil and earthengine yet
+### Move to Google Storage commands
+
+gsutil cp s3://wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif
+
+gsutil cp s3://wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif
+
+### Upload to GEE commands
+
+earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2012 gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif --force --bands nighttime_lights_2012 --nodata_value 0
+
+earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2016 gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif --force --bands nighttime_lights_2016 --nodata_value 0
+
+
+
+
+
+
+
+
+
+
+
