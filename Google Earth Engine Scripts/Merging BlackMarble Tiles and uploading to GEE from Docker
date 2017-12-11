@@ -50,9 +50,15 @@ gsutil cp s3://wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/ene
 
 ### Upload to GEE commands
 
-earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2012 gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif --force --bands nighttime_lights_2012_no_nd --nodata_value 0
+# With nodata flag
+earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2012 gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif --force --bands nighttime_lights_2012 --nodata_value 0
 
-earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2016 gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif --force --bands nighttime_lights_2016_no_nd --nodata_value 0
+earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2016 gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif --force --bands nighttime_lights_2016 --nodata_value 0
+
+# With no nodata flag
+earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2012_no_nd gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif --force --bands nighttime_lights_2012_no_nd
+
+earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2016_no_nd gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif --force --bands nighttime_lights_2016_no_nd
 
 
 
