@@ -1,0 +1,5 @@
+https://github.com/Vizzuality/docker-scripts
+
+https://github.com/resource-watch/notebooks/blob/develop/ResourceWatch/Api_definition/sql2gee.ipynb
+
+File structure for Planet Pulse and NRT data: https://docs.google.com/document/d/1Gp8Y_SWn1gZdUOEbetlD4jD7uvJtZUwSJ2tMzIDAL4M/edit
