@@ -2,10 +2,20 @@ import requests
 import os
 import logging
 import json
+import datetime
+
+from configparser import ConfigParser
+config = ConfigParser()
+config.read("/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/.env")
 
 CARTO_URL = "https://{}.carto.com/api/v2/sql"
-CARTO_USER = os.environ.get('CARTO_USER')
-CARTO_KEY = os.environ.get('CARTO_KEY')
+
+CARTO_USER = "rw-nrt"
+
+CARTO_KEY = config.get("auth", "carto_api_token_nrt")
+
+#CARTO_USER = os.environ.get('CARTO_USER')
+#CARTO_KEY = os.environ.get('CARTO_KEY')
 STRICT = True
 
 def sendSql(sql, user=CARTO_USER, key=CARTO_KEY, f='', post=True):
@@ -22,6 +32,7 @@ def sendSql(sql, user=CARTO_USER, key=CARTO_KEY, f='', post=True):
     else:
         r = requests.get(url, params=payload)
     if not r.ok:
+        logging.error((url, payload['q']))
         logging.error(r.text)
         if STRICT:
             raise Exception(r.text)
@@ -54,10 +65,17 @@ def tableExists(table):
 def createTable(table, schema, user=CARTO_USER, key=CARTO_KEY):
     defslist = ['{} {}'.format(k, v) for k, v in schema.items()]
     sql = 'CREATE TABLE "{}" ({})'.format(table, ','.join(defslist))
+    
+    #res = post(sql, user, key)
+    #logging.error(res)
     if post(sql, user, key):
+    #if res:
         sql = "SELECT cdb_cartodbfytable('{}','\"{}\"')".format(CARTO_USER, table)
         return post(sql, user, key)
 
+    
+### Possibility: update this to handle the string correcting... but may be better to do outside Carto tools
+# Then again, Carto does need a specific format
 def _escapeValue(value, dtype):
     if value is None:
         return "NULL"

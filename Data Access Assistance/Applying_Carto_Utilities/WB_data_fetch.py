@@ -1,110 +1,134 @@
 import pandas as pd
 import os
 import logging
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
-
 import sys
-import urllib
-from collections import OrderedDict
-import src.carto
+logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 
-import numpy as np
-import boto3
-import io
 import requests as req
+from collections import OrderedDict
 
-s3_client = boto3.client('s3')
-s3_resource = boto3.resource('s3')
+# Utilities
+import carto
+import misc
 
-s3_bucket = "wri-public-data"
 
-WB_DATA = "resourcewatch/world_bank_data_long_and_wide/"
-CONVERSIONS = "resourcewatch/blog_data/GHG-GDP_Divergence_D3/Conversions/"
-
-# Functions for reading and uploading data to/from S3
-def read_from_S3(bucket, key, index_col=0):
-    obj = s3_client.get_object(Bucket=bucket, Key=key)
-    df = pd.read_csv(io.BytesIO(obj['Body'].read()), index_col=[index_col], encoding="utf8")
-    return(df)
-
-def write_to_S3(df, bucket, key):
-    csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer)
-    s3_resource.Object(bucket, key).put(Body=csv_buffer.getvalue())
-
-# Provide function to map from wb_name to ISO3
-# Load conversions from wb_name to iso3
-wb_name_to_iso3_conversion = read_from_S3(s3_bucket, CONVERSIONS+"World Bank to ISO3 name conversion.csv")
-def add_iso(name):
-    try:
-        return(wb_name_to_iso3_conversion.loc[name,"ISO"])
-    except:
-        return(np.nan)
+WB_DATA = "resourcewatch/world_bank_data_long_and_wide/script_update/"
 
 def fetch_wb_data(codes_and_names):
     indicators = list(codes_and_names.keys())
-    for indicator in indicators:
+    for ix, indicator in enumerate(indicators):
         # Results are paginated
-        print(indicator)
+        logging.info(indicator)
         res = req.get("http://api.worldbank.org/countries/all/indicators/{}?format=json&per_page=10000".format(indicator))
-        #print(res.text)
+        #logging.info(res.text)
         data = pd.io.json.json_normalize(res.json()[1])
         data = data[["country.value", "date", "value"]]
-        value_name = data_names_and_codes[indicator]
-        data.columns = ["Country Name", "Year", value_name]
-        data = data.set_index(["Country Name", "Year"])
-        if all_world_bank_data:
-            all_world_bank_data = all_world_bank_data.join(data, how="outer")
-        else:
+        value_name = codes_and_names[indicator]['column_name']
+        data.columns = ["Country", "Year", value_name]
+        
+        data["Year"] = misc.fix_datetime_UTC(data, date_columns="Year")
+        
+        data = data.set_index(["Country", "Year"])
+        if ix == 0:
             all_world_bank_data = data
+        else:
+            all_world_bank_data = all_world_bank_data.join(data, how="outer")
 
     all_world_bank_data = all_world_bank_data.reset_index()
     # Add ISO3 column
-    all_world_bank_data["ISO3"] = list(map(add_iso, all_world_bank_data["Country Name"]))
+    all_world_bank_data["ISO3"] = list(map(misc.add_iso, all_world_bank_data["Country"]))
     # Drop rows which don't have an ISO3 assigned
     # achieves the drop of "World" and "Europe" and other unwanted entries
     all_world_bank_data = all_world_bank_data.loc[pd.notnull(all_world_bank_data["ISO3"])]
-    all_world_bank_data = all_world_bank_data.set_index(["Country Name", "Year"])
-
-## Will need to make a better name
-CARTO_SCHEMA = OrderedDict([
-    ('ISO3', 'text'),
-    ('Country', 'text'),
-    ('Year', 'timestamp'),
-    ('Value', 'numeric')
-])
+    all_world_bank_data = all_world_bank_data.set_index(["Country", "ISO3", "Year"])
+    return(all_world_bank_data)
 
 def main():
 
     ## World Bank data series codes and names
-    data_codes_and_names = {'EG.ELC.ACCS.ZS': 'Access to electricity (% of population)',
-     'EG.FEC.RNEW.ZS': 'Renewable energy consumption (% of total final energy consumption)',
-     'IT.NET.USER.ZS': 'Individuals using the Internet (% of population)',
-     'NE.CON.PRVT.PC.KD': 'Household final consumption expenditure per capita (constant 2010 US$)',
-     'NV.IND.TOTL.KD': 'Industry, value added (constant 2010 US$)',
-     'NY.GDP.TOTL.RT.ZS': 'Total natural resources rents (% of GDP)',
-     'SG.GEN.PARL.ZS': 'Proportion of seats held by women in national parliaments (%)',
-     'SL.EMP.TOTL.SP.ZS': 'Employment to population ratio, 15+, total (%) (modeled ILO estimate)',
-     'SM.POP.NETM': 'Net migration',
-     'SP.DYN.LE00.IN': 'Life expectancy at birth, total (years)',
-     'SP.URB.TOTL.IN.ZS': 'Urban population (% of total)',
-     'TM.VAL.MRCH.CD.WT': 'Merchandise imports (current US$)',
-     'NY.GDP.MKTP.CD': 'GDP (current US$)'}
-
+    # key = WB code: https://datahelpdesk.worldbank.org/knowledgebase/articles/201175-how-does-the-world-bank-code-its-indicators
+    # value = [table_name, value_column_name, units]
+    
+    
+    ### WARNINGS
+    # For this to work as expected, there must not be any , in the table names
+    # And table names cannot be longer than a certain number of characters, equal to
+    # Length of: soc_106_proportion_of_seats_held_by_women_in_national_parliamen (63 characters)
+    data_codes_and_names = {
+        'EG.ELC.ACCS.ZS': {'table_name': 'soc_100 Access to electricity', 
+                           'column_name': 'acc_to_elec', 
+                           'unit': '% of population'}, 
+        'EG.FEC.RNEW.ZS': {'table_name': 'soc_101 Renewable energy consumption', 
+                           'column_name': 'rnw_ene_con', 
+                           'unit': '% of total final energy consumption'}, 
+        'IT.NET.USER.ZS': {'table_name': 'soc_102 Individuals using the Internet', 
+                           'column_name': 'intnt_use', 
+                           'unit': '% of population'}, 
+        'NE.CON.PRVT.PC.KD': {'table_name': 'soc_103 Household final consumption expenditure per capita', 
+                              'column_name': 'cons_exp', 
+                              'unit': 'constant 2010 US$'}, 
+        'NV.IND.TOTL.KD': {'table_name': 'soc_104 Industry value added', 
+                           'column_name': 'ind_val_add', 
+                           'unit': 'constant 2010 US$'}, 
+        'NY.GDP.TOTL.RT.ZS': {'table_name': 'soc_105 Total natural resources rents', 
+                              'column_name': 'nat_rsc_rnt', 
+                              'unit': '% of GDP'}, 
+        'SG.GEN.PARL.ZS': {'table_name': 'soc_106 Proportion of women in national parliaments',
+                           'column_name': 'wmn_prlmnt', 
+                           'unit': '% of parliamentary seats'}, 
+        'SL.EMP.TOTL.SP.ZS': {'table_name': 'soc_107 Employment to population ratio', 
+                              'column_name': 'empl_ratio', 
+                              'unit': '% employed population, ages 15+'}, 
+        'SM.POP.NETM': {'table_name': 'soc_108 Net migration', 
+                        'column_name': 'net_migr', 
+                        'unit': 'number of net in-migrants'}, 
+        'SP.DYN.LE00.IN': {'table_name': 'soc_109 Life expectancy at birth', 
+                           'column_name': 'life_exp', 
+                           'unit': 'years'}, 
+        'SP.URB.TOTL.IN.ZS': {'table_name': 'soc_110 Urban population', 
+                              'column_name': 'urban_pop', 
+                              'unit': '% of total population'}, 
+        'TM.VAL.MRCH.CD.WT': {'table_name': 'soc_111 Merchandise imports', 
+                              'column_name': 'merch_imp', 
+                              'unit': 'current US$'}, 
+        'NY.GDP.MKTP.CD': {'table_name': 'soc_112 GDP', 
+                           'column_name': 'gdp', 
+                           'unit': 'current US$'}}
+    
     all_world_bank_data = fetch_wb_data(data_codes_and_names)
 
     # Write to S3 and Carto the individual data sets
-    for code, name in data_codes_and_names.items():
-        long_form = all_world_bank_data[name]
+    for code, info in data_codes_and_names.items():
+        val_name = info['column_name']
+        # Can't have spaces in Carto table names
+        table = info['table_name'].replace(' ', '_').lower()
+        units = info['unit']
+        
+        long_form = all_world_bank_data[val_name]
         long_form = long_form.reset_index()
-        long_form = long_form[pd.notnull(long_form[name])]
-
+        long_form['Units'] = units
+        
+        column_order = ['ISO3', 'Country', 'Year', val_name, 'Units']
+        
+        # Enforce order in the data frame
+        long_form = long_form[column_order]
+        
+        long_form = long_form[pd.notnull(long_form[val_name])]
+        
         # Write to S3
-        write_to_S3(long_form, s3_bucket, WB_DATA + "wb_data_long_{}.csv".format(name.replace(" ", "_")))
+        misc.write_to_S3(long_form, WB_DATA + "wb_data_long_{}.csv".format(val_name))
 
         # Write to Carto
-        CARTO_TABLE = code
+        CARTO_TABLE = table
 
+        CARTO_SCHEMA = OrderedDict([
+            ('ISO3', 'text'),
+            ('Country', 'text'),
+            ('Year', 'timestamp'),
+            (val_name, 'numeric'),
+            ('Units','text')
+        ])
+        
         ### 1. Check if table exists and create table, if it does, drop and replace
         #dest_ids = []
         if not carto.tableExists(CARTO_TABLE):
@@ -114,28 +138,11 @@ def main():
             carto.dropTable(CARTO_TABLE)
             carto.createTable(CARTO_TABLE, CARTO_SCHEMA)
 
-        ### 2. Fetch existing data - don't necessarily need to do this b/c data is small
-        ### But could - and use the dedupe procedure to only update the necessary rows
-
-        ### 3. Fetch data from source
-        ### Can adapt the above code into a WB connector function, call it here,
-        ### And encapsulate this code in a main() function
-        #for dest, url in SOURCE_URLS.items():
-        #    urllib.request.urlretrieve(url, os.path.join(DATA_DIR, dest))
-
-        ### 4. Parse fetched data and generate unique ids
-        ### This can be combined with step 2 above
-        # rows = parseFloods(os.path.join(DATA_DIR, TABFILE), ENCODING, CARTO_SCHEMA.keys(), dest_ids)
-
-        ### 5. Insert new observations
-        rows = array(long_form)
+        ### 2. Insert new observations
+        # https://stackoverflow.com/questions/19585280/convert-a-row-in-pandas-into-list
+        rows = long_form.values.tolist()
+        logging.error(rows[:10])
         if len(rows):
             carto.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA, rows)
 
-        ### 6. Remove old observations
-        ### Probably will not need this, as tables will not get too big
-
-        #logging.info('Row count: {}, New: {}, Max: {}'.format(len(dest_ids), len(rows), MAXROWS))
-        #if len(dest_ids) + len(rows) > MAXROWS and MAXROWS > len(rows):
-        #    drop_ids = dest_ids[(MAXROWS - len(rows)):]
-        #    carto.deleteRowsByIDs(CARTO_TABLE, "_UID", drop_ids)
+main()

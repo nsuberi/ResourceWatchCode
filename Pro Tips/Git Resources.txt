@@ -8,3 +8,6 @@ https://stackoverflow.com/questions/61212/how-to-remove-local-untracked-files-fr
 GIT cheatsheet: http://www.ndpsoftware.com/git-cheatsheet.html#loc=local_repo;
 
 Cleaning with bfg: https://rtyley.github.io/bfg-repo-cleaner/
+https://github.com/IBM/BluePic/wiki/Using-BFG-Repo-Cleaner-tool-to-remove-sensitive-files-from-your-git-repo
+
+https://stackoverflow.com/questions/7106012/download-a-single-folder-or-directory-from-a-github-repo
