@@ -27,7 +27,7 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 # Script options
 PROCESS_FULL_HISTORY = False
-PROCESS_PARTIAL_HISTORY = True
+PROCESS_PARTIAL_HISTORY = False
 PARTIAL_HISTORY_LENGTH = 120
 
 ###
@@ -126,7 +126,7 @@ def process_most_recent_to_tif(nc, time_var_name, data_var_name,
     ###
     
     # Extract time variable range
-    time_displacement = nc[time_var_name][-1]
+    time_displacement = nc[time_var_name]
     
     # Identify time units
     # fuzzy=True allows the parser to pick the date out from a string with other text
@@ -136,7 +136,7 @@ def process_most_recent_to_tif(nc, time_var_name, data_var_name,
     logging.info(ref_time)
     
     # Create date ready for tif name
-    formatted_date = create_formatted_dates(ref_time, time_displacement)
+    formatted_date = create_formatted_dates(ref_time, [time_displacement[-1]])
     
     # Convert nc to tif
     netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_date)
@@ -256,7 +256,7 @@ def process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val):
             ### TO DO
             ## Adjust this... should just increment the month by 1, accounting for year overflow
             ## 
-            time_end = (datetime.strptime(time_start,"%Y-%m-%d") + datetime.timedelta(days=31)).strftime("%Y-%m-%d")
+            time_end = (datetime.datetime.strptime(time_start,"%Y-%m-%d") + datetime.timedelta(days=31)).strftime("%Y-%m-%d")
         
         # Times need to be expressed in milliseconds since last epoch, UNIX time
         # https://en.wikipedia.org/wiki/Unix_time
