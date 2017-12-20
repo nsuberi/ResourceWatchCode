@@ -37,17 +37,17 @@ def download_full_nc_history(tmpNcFolder):
     Outputs: Newest available gistemp250 file name, along with time_start and time_end for the entire collection
     """
     remote_path = 'https://data.giss.nasa.gov/pub/gistemp/'
-    ncFile_zipped = tmpNcFolder + 'gistemp250.nc.gz'
-    ncFile_name = ncFile_zipped[:-3]
+    ncFile_zipped = 'gistemp250.nc.gz'
+    ncFile_name = tmpNcFolder + ncFile_zipped[:-3]
 
     local_path = os.getcwd()
 
     logging.info(remote_path)
-    logging.info(last_file)
-    logging.info(local_path)
+    logging.info(ncFile_zipped)
+    logging.info(ncFile_name)
 
     #Download the file .nc
-    with closing(urlopen(remote_path+ncFile_zipped)) as r:
+    with closing(urlopen(remote_path + ncFile_zipped)) as r:
         with gzip.open(r, "rb") as unzipped:
             with open(ncFile_name, 'wb') as f:
                 shutil.copyfileobj(unzipped, f)
@@ -55,16 +55,18 @@ def download_full_nc_history(tmpNcFolder):
     logging.info('Downloaded full nc history')
     
     # NEED TO READ TIME_START FROM THE DATA... is in metadata?
-    time_start = fix_datetime_UTC("")
+    #time_start = fix_datetime_UTC("")
     
-    today = datetime.now()
-    time_end = fix_datetime_UTC(today)
-    
-    return (ncFile_name, time_start, time_end)
+    #today = datetime.datetime.now()
+    #time_end = fix_datetime_UTC(today)
+    nc = Dataset(ncFile_name)
+    return (nc)
 
 def process_full_history_to_tifs(nc, var_name, tmpTifFolder, tifFileName_stub):
     # Time range stored in first index
-    for time_step in range(nc[var_name].shape[0]):
+    time_range = nc[var_name].shape[0]
+    logging.info(time_range)
+    for time_step in range(time_range):
         netcdf2tif(nc, var_name, tifFileName_stub, time_step)
     
 def process_most_recent_to_tif(nc, var_name, tmpTifFolder, tifFileName_stub):
@@ -152,7 +154,7 @@ def process_tif_files_to_cloud(tmpTifFolder, cloud_props):
             "gs_bucket":cloud_props["gs_bucket"],
             "gee_props":{
                 "imageCollection":cloud_props["imageCollection"],
-                "gee_asset_name": "users/resourcewatch/" + cloud_props["imageCollection"] + "/" + tif
+                "gee_asset_name": "users/resourcewatch/" + cloud_props["imageCollection"] + "/" + tif,
                 "band_names":band_names,
                 "time_start":time_start,
                 "time_end":time_end
@@ -224,15 +226,21 @@ def main():
     
     # Create a temporary folder structure to store data
     tmpDataFolder = "tmpData"
-    os.mkdir(tmpDataFolder)
-    tmpNcFolder = tmpDataFolder + "/ncFiles"
-    tmpTifFolder = tmpDataFolder + "/tifFiles"
+    try:
+        cleanUp(tmpDataFolder)
+        os.mkdir(tmpDataFolder)
+    except:
+        os.mkdir(tmpDataFolder)
+    logging.info("Clean folder created")
+    
+    tmpNcFolder = tmpDataFolder + "/ncFiles/"
+    tmpTifFolder = tmpDataFolder + "/tifFiles/"
     os.mkdir(tmpNcFolder)
     os.mkdir(tmpTifFolder)
     
     # Returns the entire history of GISTEMP in a netCDF file
-    ncFile_name, collection_time_start, collection_time_end = download_full_nc_history(tmpNcFolder)
-    nc = Dataset(ncFile_name)
+    # Should this return the timeframe of the collection?
+    nc = download_full_nc_history(tmpNcFolder)
     var_name = 'tempanomaly'
     
     # Populate the tmpTifFolder will all files to process
