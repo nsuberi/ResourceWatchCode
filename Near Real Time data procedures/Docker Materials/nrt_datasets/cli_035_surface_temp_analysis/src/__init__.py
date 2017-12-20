@@ -1,43 +1,92 @@
-import numpy as np
-import os
-#import urllib2
+# Libraries to fetch data
 from urllib.request import urlopen
 import shutil
 from contextlib import closing
+import gzip
+
+# Libraries to handle data
 from netCDF4 import Dataset
 import rasterio
-import boto3
-import gzip
+
+# Library to interact with OS
 import subprocess
+import os
 
+# Libraries to reformat data
+from misc import fix_datetime_UTC
+import datetime
+import numpy as np # use to set data type for rasterio
 np.set_printoptions(threshold='nan')
-s3 = boto3.resource("s3")
 
-def dataDownload(): 
+# Libraries to debug
+import logging
+import sys
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+
+# Script options
+PROCESS_HISTORY = True
+
+
+###
+## Procedure for obtaining the netcdf file, and processing it to tifs
+###
+
+def download_full_nc_history(tmpNcFolder):
+    """
+    Inputs: location to store nc file temporary
+    Outputs: Newest available gistemp250 file name, along with time_start and time_end for the entire collection
+    """
     remote_path = 'https://data.giss.nasa.gov/pub/gistemp/'
-    new_file_zipped = 'gistemp250.nc.gz'
-    new_file_orig = new_file_zipped[:-3]
+    ncFile_zipped = tmpNcFolder + 'gistemp250.nc.gz'
+    ncFile_name = ncFile_zipped[:-3]
 
     local_path = os.getcwd()
 
-    print (remote_path)
-    print (last_file)
-    print (local_path)
+    logging.info(remote_path)
+    logging.info(last_file)
+    logging.info(local_path)
 
     #Download the file .nc
-    #with closing(urllib.urlopen(remote_path+last_file)) as r:
-    with closing(urlopen(remote_path+new_file_zipped)) as r:
+    with closing(urlopen(remote_path+ncFile_zipped)) as r:
         with gzip.open(r, "rb") as unzipped:
-            with open(new_file_orig, 'wb') as f:
+            with open(ncFile_name, 'wb') as f:
                 shutil.copyfileobj(unzipped, f)
     
-    # What is returned here -> will be "file"
-    print ('Downloaded')
-    return (new_file_orig)
+    logging.info('Downloaded full nc history')
+    
+    # NEED TO READ TIME_START FROM THE DATA... is in metadata?
+    time_start = fix_datetime_UTC("")
+    
+    today = datetime.now()
+    time_end = fix_datetime_UTC(today)
+    
+    return (ncFile_name, time_start, time_end)
 
-def netcdf2tif(dst,outFile):
-    nc = Dataset(dst)
-    data = nc['tempanomaly'][-1,:,:]
+def process_full_history_to_tifs(nc, var_name, tmpTifFolder, tifFileName_stub):
+    # Time range stored in first index
+    for time_step in range(nc[var_name].shape[0]):
+        netcdf2tif(nc, var_name, tifFileName_stub, time_step)
+    
+def process_most_recent_to_tif(nc, var_name, tmpTifFolder, tifFileName_stub):
+    ### TO DO
+    ## Check to see if this is a new addition
+    ###
+    netcdf2tif(nc, var_name, tifFileName_stub, -1)
+
+def netcdf2tif(nc, var_name, tifFileName_stub, time_step):
+    """
+    Inputs: 
+    * pointer to a netcdf file, nc
+    * variable name to select from the nc
+    * folder to place temporary TIFFS
+    * time_step to output
+    
+    Outputs:
+    * Formatted TIFF files ready for GEE in tmpTifFolder
+    """
+    
+    data = nc[var_name][time_step,:,:]
+    tifFile_name = tifFileName_stub + "read what this date corresponds to"
             
     #data[data < -40] = -99
     #data[data > 40] = -99
@@ -65,63 +114,142 @@ def netcdf2tif(dst,outFile):
         'compress':'lzw', 
         'nodata':-99
     }
-    with rasterio.open(outFile, 'w', **profile) as dst:
+    
+    with rasterio.open(tifFile_name, 'w', **profile) as dst:
         dst.write(data.astype(profile['dtype']), 1)
 
-    print ('Converted')
+    logging.info('netCDF converted to TIFF')
 
-def cloudProcess(edited_file, cloud_folder, gee_asset_name):
     
-    cloud_key = cloud_folder + edited_file
+###
+## Procedure for moving tif files to the cloud
+### 
     
-    s3Upload(edited_file, "wri-public-data", cloud_key)
-    loadToGoogleStorage(cloud_key)
-    loadToGEE(cloud_key, gee_asset_name, "temporary_band_info")
+def process_tif_files_to_cloud(tmpTifFolder, cloud_props):
+    """
+    Inputs:
+    * folder with tif files to loop over
+    * cloud_props, which at least contain keys: imageCollection, gs_bucket
     
-def s3Upload(edited_file, bucket, cloud_key):
-    # Push to Amazon S3 instance
-    f = open(edited_file,'rb')
-    s3.Object(bucket, cloud_key).put(Body=f)
-    print ('Up on s3')
+    Outputs: files in the correct places on gs and gee
+    """
+    assert(type(cloud_props)==dict)
+    assert(all([prop in cloud_props.keys() for prop in ["imageCollection", "gs_bucket"]]))
+    
+    
+    tifs = glob.glob(tmpTifFolder + "/*.tif")
+    for tif in tifs:
+        
+        # always the same for this data set
+        band_names = "surface_temp_anomalies"
+        
+        # read time_start from the file name
+        time_start = ""
+        time_end = ""
+        
+        kwargs = {
+            "tifFile_name":tif,
+            "gs_bucket":cloud_props["gs_bucket"],
+            "gee_props":{
+                "imageCollection":cloud_props["imageCollection"],
+                "gee_asset_name": "users/resourcewatch/" + cloud_props["imageCollection"] + "/" + tif
+                "band_names":band_names,
+                "time_start":time_start,
+                "time_end":time_end
+            }
+        }
 
-def loadToGoogleStorage(cloud_key):
-    cmd = ["gsutil", 
-    "cp", 
-    "s3://wri-public-data/" + cloud_key,
-    "gs://resource-watch-public/" + cloud_key]
+        cloudProcess(**kwargs)
+    
+def cloudProcess(tifFile_name, gs_bucket, gee_props):
+    """
+    Inputs: 
+    * name of the imageCollection to add to
+    * name of the tifFile stored on the instance, to be uploaded
+    * name of the gee_asset
+    * properties to set on the gee_asset
+    ** gee_props should be a dictionary w/ at least four keys: 
+    ** imageCollection, gee_asset_name, band_names, time_start, time_end
+    
+    Outputs: files in the correct places on gs, and gee
+    """
+    assert(type(gee_props)==dict)
+    assert(all([prop in gee_props.keys() for prop in ["imageCollection", "gee_asset_name", "band_names", "time_start", "time_end"]]))
+    
+    gs_loc = loadToGoogleStorage(tifFile_name, gs_bucket, gee_props["imageCollection"])
+    loadToGEE(gs_loc, gee_props)
 
-    subprocess.check_output(cmd)
-    print ('Up on google storage')
+def loadToGoogleStorage(tifFile_name, gs_bucket, imageCollection):
+    gs_loc = "gs://" + gs_bucket + "/raster/" + imageCollection + "/" + tifFile_name
+    
+    cmd = ["gsutil", "cp", tifFile_name, gs_loc]
+    logging.info(subprocess.check_output(cmd))
+    
+    logging.info('Up on google storage')
 
-def loadToGEE(cloud_key, asset_name, band_info):
+    return(gs_loc)
+
+def loadToGEE(gs_loc, gee_props):
+    
+    ### add in option to overwrite the asset if it is already up
+    
     cmd = ["earthengine", "upload", "image",
-    "--asset_id", asset_name,
-    "gs://resource-watch-public/" + cloud_key,
+    "--asset_id", gee_props["gee_asset_name"], gs_loc,
     "--pyramiding_policy=mode",
-    "-p", "band_names=" + band_info]
+    "--bands", gee_props["band_names"],
+    "-p", "system:time_start="+gee_props["time_start"],
+    "-p", "system:time_end="+gee_props["time_end"]]
+    logging.info(subprocess.check_output(cmd))
+    
+    logging.info('GEE asset upload started')
+    logging.info('Check back to ensure ACL is set to public before attempting to connect to the back office')
+    
+    
+###
+## Cleaning up
+###
+    
+def cleanUp(tmpDataFolder):
+    shutil.rmtree(tmpDataFolder)
+    logging.info('container process finished, container cleaned')
 
-    subprocess.check_output(cmd)
-    print ('GEE asset upload started')
-    print ('Check back to ensure ACL is set to public before attempting to connect to the back office')
+     
+###
+## Execution
+### 
 
-def cleanUp(orig_file, edited_file):
-    os.unlink(orig_file)
-    os.unlink(edited_file)
-    print('container process finished, container cleaned')
-
-# Execution
 def main():
-    print ('starting')
-
-    orig_file = dataDownload()
-
-    edited_file = "cli_035_surface_temp_analysis_edit.tif"
-    netcdf2tif(orig_file,edited_file)
-
-    cloud_key = "resourcewatch/raster/cli_035_surface_temp_analysis/"
-    gee_asset_name = "users/resourcewatch/cli_035_surface_temp_analysis"
-    cloudProcess(edited_file, cloud_key, gee_asset_name)
-
-    cleanUp(orig_file, edited_file)
+    
+    logging.info('starting')
+    
+    # Create a temporary folder structure to store data
+    tmpDataFolder = "tmpData"
+    os.mkdir(tmpDataFolder)
+    tmpNcFolder = tmpDataFolder + "/ncFiles"
+    tmpTifFolder = tmpDataFolder + "/tifFiles"
+    os.mkdir(tmpNcFolder)
+    os.mkdir(tmpTifFolder)
+    
+    # Returns the entire history of GISTEMP in a netCDF file
+    ncFile_name, collection_time_start, collection_time_end = download_full_nc_history(tmpNcFolder)
+    nc = Dataset(ncFile_name)
+    var_name = 'tempanomaly'
+    
+    # Populate the tmpTifFolder will all files to process
+    tifFileName_stub = "cli_035_surface_temp_analysis_"
+    if PROCESS_HISTORY:
+        process_full_history_to_tifs(nc, var_name, tmpTifFolder, tifFileName_stub)
+    else:
+        process_most_recent_to_tif(nc, var_name, tmpTifFolder, tifFileName_stub)
+    
+    # Process all files in the tmpTifFolder onto the cloud
+    cloud_props = {
+        "imageCollection": "cli_035_surface_temp_analysis",
+        "gs_bucket": "resource-watch-public"
+    }
+    process_tif_files_to_cloud(tmpTifFolder, cloud_props)
+    
+    # Clean up before exit
+    cleanUp(tmpDataFolder)
 
 main()
