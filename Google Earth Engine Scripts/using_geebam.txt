@@ -1,0 +1,1 @@
+geebam delete users/resourcewatch/cli_035_surface_temp_analysis

@@ -26,8 +26,9 @@ import sys
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 # Script options
-PROCESS_HISTORY = True
-
+PROCESS_FULL_HISTORY = False
+PROCESS_PARTIAL_HISTORY = True
+PARTIAL_HISTORY_LENGTH = 120
 
 ###
 ## Procedure for obtaining the netcdf file, and processing it to tifs
@@ -97,6 +98,26 @@ def process_full_history_to_tifs(nc, time_var_name, data_var_name,
     # Convert nc to tifs
     netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_dates)
     
+def process_partial_history_to_tifs(nc, time_var_name, data_var_name,
+                                 tmpTifFolder, tifFileName_stub, num_to_keep):
+    # Extract time variable range
+    time_displacements = nc[time_var_name]
+    num_time_steps = len(time_displacements)
+    logging.info(num_time_steps)
+    
+    # Identify time units
+    # fuzzy=True allows the parser to pick the date out from a string with other text
+    time_units = time_displacements.getncattr('units')
+    logging.info(time_units)
+    ref_time = parser.parse(time_units, fuzzy=True)
+    logging.info(ref_time)
+    
+    # Create dates ready for tif names
+    formatted_dates = create_formatted_dates(ref_time, time_displacements[-num_to_keep:])
+    
+    # Convert nc to tifs
+    netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_dates)
+    
 def process_most_recent_to_tif(nc, time_var_name, data_var_name,
                                tmpTifFolder, tifFileName_stub):
     ### TO DO
@@ -136,7 +157,12 @@ def netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_date
     for time_step, date in enumerate(formatted_datez):
         # Intercept the case where we're only looking at the most recent observation,
         # not the entire history
-        if len(formatted_datez) == 1:
+        
+        if PROCESS_FULL_HISTORY:
+            time_step=time_step
+        elif PROCESS_PARTIAL_HISTORY:
+            time_step=-(len(formatted_datez)+time_step)
+        else:
             time_step = -1
             
         data = nc[data_var_name][time_step,:,:]
@@ -341,9 +367,12 @@ def main():
     
     # Populate the tmpTifFolder will all files to process
     tifFileName_stub = "cli_035_surface_temp_analysis_"
-    if PROCESS_HISTORY:
+    if PROCESS_FULL_HISTORY:
         process_full_history_to_tifs(nc, time_var_name, data_var_name, 
                                      tmpTifFolder, tifFileName_stub)
+    elif PROCESS_PARTIAL_HISTORY:
+        process_partial_history_to_tifs(nc, time_var_name, data_var_name, 
+                                   tmpTifFolder, tifFileName_stub, PARTIAL_HISTORY_LENGTH)
     else:
         process_most_recent_to_tif(nc, time_var_name, data_var_name, 
                                    tmpTifFolder, tifFileName_stub)
