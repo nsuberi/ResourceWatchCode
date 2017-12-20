@@ -223,12 +223,12 @@ def format_time_for_gee(time_start, time_end, orig_date_pattern="%Y-%m-%d"):
     
     return(time_start, time_end)
     
-def process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val):
+def process_tif_files_to_cloud(tmpTifFolder, cloud_props, asset_props):
     """
     Inputs:
     * folder with tif files to loop over
     * cloud_props, which at least contain keys: imageCollection, gs_bucket
-    
+    * asset_props, which at least contain keys: nodata_val, band_names
     Outputs: files in the correct places on gs and gee
     """
     assert(type(cloud_props)==dict)
@@ -242,9 +242,6 @@ def process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val):
     tifs = glob.glob(tmpTifFolder + "*_.tif")
     
     for ix, tif in enumerate(tifs):
-        
-        # always the same for this data set
-        band_names = "surface_temp_anomalies"
         
         # read time_start from the file name
         # [-15:-5] is derived from the file name convention
@@ -276,8 +273,8 @@ def process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val):
             "gee_props":{
                 "imageCollection":cloud_props["imageCollection"],
                 "gee_asset_name": "users/resourcewatch/" + cloud_props["imageCollection"] + "/" + assetName,
-                "band_names":band_names,
-                "nodata_value":nodata_val,
+                "band_names":asset_props["band_names"],
+                "nodata_value":asset_props["nodata_val"],
                 "time_start":str(int(time_start)),
                 "time_end":str(int(time_end))
             }
@@ -364,6 +361,7 @@ def main():
     time_var_name = 'time'
     data_var_name = 'tempanomaly'
     nodata_val = str(nc[data_var_name].getncattr("_FillValue"))
+    band_names = "surface_temp_anomalies"
     
     # Populate the tmpTifFolder will all files to process
     tifFileName_stub = "cli_035_surface_temp_analysis_"
@@ -382,7 +380,11 @@ def main():
         "imageCollection": "cli_035_surface_temp_analysis",
         "gs_bucket": "resource-watch-public"
     }
-    process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val)
+    asset_props = {
+        "nodata_val":nodata_val,
+        "band_names":band_names
+    }
+    process_tif_files_to_cloud(tmpTifFolder, cloud_props, asset_props)
     
     # Clean up before exit
     #cleanUp(tmpDataFolder)
