@@ -17,30 +17,41 @@ WB_DATA = "resourcewatch/world_bank_data_long_and_wide/script_update/"
 def fetch_wb_data(codes_and_names):
     indicators = list(codes_and_names.keys())
     for ix, indicator in enumerate(indicators):
-        # Results are paginated
         logging.info(indicator)
+        value_name = codes_and_names[indicator]['column_name']
+        
+        # Fetch data
         res = req.get("http://api.worldbank.org/countries/all/indicators/{}?format=json&per_page=10000".format(indicator))
-        #logging.info(res.text)
+        logging.info(res.text)
+        
+        # Format into dataframe, only keep some columns
         data = pd.io.json.json_normalize(res.json()[1])
         data = data[["country.value", "date", "value"]]
-        value_name = codes_and_names[indicator]['column_name']
         data.columns = ["Country", "Year", value_name]
-        
+        # Standardize year column for ISO time
         data["Year"] = misc.fix_datetime_UTC(data, dttm_elems={"year_col":"Year"})
-        
+        # Only keep countries, not larger political bodies
+        data = data.iloc[misc.pick_wanted_entities(data["Country"].values)]
+        # Set index to Country and Year
         data = data.set_index(["Country", "Year"])
+   
         if ix == 0:
+            # Start off the dataframe
             all_world_bank_data = data
         else:
+            # Continue adding to the dataframe
             all_world_bank_data = all_world_bank_data.join(data, how="outer")
 
+    # Finished fetching, reset_index
     all_world_bank_data = all_world_bank_data.reset_index()
-    # Add ISO3 column
+    
+    # Add ISO3 column - will now only contained desired entities
     all_world_bank_data["ISO3"] = list(map(misc.add_iso, all_world_bank_data["Country"]))
     # Drop rows which don't have an ISO3 assigned
-    # achieves the drop of "World" and "Europe" and other unwanted entries
     all_world_bank_data = all_world_bank_data.loc[pd.notnull(all_world_bank_data["ISO3"])]
+    # Set the index to be everything except the value column. This simplifies dissection later
     all_world_bank_data = all_world_bank_data.set_index(["Country", "ISO3", "Year"])
+    
     return(all_world_bank_data)
 
 def main():

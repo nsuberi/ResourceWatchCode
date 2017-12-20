@@ -37,7 +37,27 @@ def add_iso(name):
     except:
         return(np.nan)
 
+# Dropping any countries not desired in the result
 
+drop_patterns = "Arab World, Middle income, Europe & Central Asia (IDA & IBRD countries), IDA total, Latin America & the Caribbean (IDA & IBRD countries), Middle East & North Africa (IDA & IBRD countries), blank (ID 268), Europe & Central Asia (excluding high income), IBRD only, IDA only, Early-demographic dividend, Latin America & the Caribbean (excluding high income), Middle East & North Africa, Middle East & North Africa (excluding high income), Late-demographic dividend, Pacific island small states, Europe & Central Asia, European Union, High income, IDA & IBRD total, IDA blend, Caribbean small states, Central Europe and the Baltics, East Asia & Pacific, East Asia & Pacific (excluding high income), Low & middle income, Lower middle income, Other small states, Latin America & Caribbean, East Asia & Pacific (IDA & IBRD countries), Euro area, OECD members, North America, Middle East & North Africa (excluding high income), Post-demographic dividend, Small states, South Asia, Upper middle income, World, heavily indebted poor countries (HIPC), Least developed countries: UN classification, blank (ID 267), blank (ID 265), Latin America & Caribbean, IDA & IBRD total, IBRD only, Europe & Central Asia, sub-Saharan Africa (excluding high income), Macao SAR China, sub-Saharan Africa, pre-demographic dividend, South Asia (IDA & IBRD), sub-Saharan Africa (IDA & IBRD), Upper middle income, fragile and conflict affected"
+drop_patterns = [patt.strip() for patt in drop_patterns.split(",")]
+
+def pick_wanted_entities(entities, drop_patterns=drop_patterns):
+    """
+    Input: 
+    * a list of entities that correspond to a dataframe of observations for which these may be in the index
+    * a list of which entities you'd like to eliminate
+    
+    Output: which indices to keep from the originating dataframe to eliminate the desired entities
+    """
+    
+    ix_to_keep = [ix for ix, entity in enumerate(entities) if entity not in drop_patterns]
+    return(ix_to_keep)
+
+entities = ["France", "Ghana", "Middle income", "Europe & Central Asia (IDA & IBRD countries)", "IDA total"]
+
+logging.info(pick_wanted_entities(entities))
+logging.info(pick_wanted_entities(entities, drop_patterns=["France", "Ghana"]))
     
 ### Standardizing datetimes
     
@@ -64,7 +84,7 @@ def structure_dttm_from_parts(row, dttm_elems, dttm_pattern):
 
 def fix_datetime_UTC(data_df, dttm_elems_in_sep_columns=True, 
                      dttm_elems={},
-                     dttm_col=None, 
+                     dttm_columnz=None, 
                      dttm_pattern="%Y-%m-%dT%H:%M:%SZ"):
     """
     Desired datetime format: 2017-12-08T15:16:03Z
@@ -90,7 +110,7 @@ def fix_datetime_UTC(data_df, dttm_elems_in_sep_columns=True,
     # and either a date, time, or datetime object
     if dttm_elems_in_sep_columns:
         assert(type(dttm_elems)==dict)
-        assert(dttm_col==None)
+        assert(dttm_columnz==None)
         
         tmp = data_df.copy()
         if "year_col" not in dttm_elems:
@@ -111,8 +131,22 @@ def fix_datetime_UTC(data_df, dttm_elems_in_sep_columns=True,
         dttm_col = tmp.apply(lambda row: structure_dttm_from_parts(row, dttm_elems, dttm_pattern), axis=1)
         
     else:
-        # Need to provide the default parameter to parser.parse so that missing entries don't default to current date
-        dttm_col = data_df.apply(lambda row: parser.parse(row[dttm_col], default=default_date).strftime(dttm_pattern), axis=1)
+        # Make sure it is possible to treat dttm_columnz as a list
+        assert(dttm_columnz!=None)
+        if type(dttm_columnz) != list:
+            assert(type(dttm_columns) in [str, int, float])
+            dttm_columnz = list(dttm_columnz)
+            
+        # No matter what, this runs over a Series, and thus you don't have to set axis=1
+        if len(dttm_columnz)>1:
+            # Need to provide the default parameter to parser.parse so that missing entries don't default to current date
+            dttm_col = data_df[dttm_columns].apply(lambda row: parser.parse(row[dttm_col], default=default_date).strftime(dttm_pattern))
+        else:
+            # pack together then send through apply
+            dttm_contents = data_df[dttm_columnz[0]]
+            for col in dttm_columns[1:]:
+                dttm_contents = dttm_contents + " " + data_df[col]
+            dttm_col = dttm_contents.apply(lambda dttm: parser.parse(dttm, default=default_date).strftime(dttm_pattern))
     
     return(dttm_col)
 
