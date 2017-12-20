@@ -26,7 +26,7 @@ def fetch_wb_data(codes_and_names):
         value_name = codes_and_names[indicator]['column_name']
         data.columns = ["Country", "Year", value_name]
         
-        data["Year"] = misc.fix_datetime_UTC(data, date_columns="Year")
+        data["Year"] = misc.fix_datetime_UTC(data, dttm_elems={"year_col":"Year"})
         
         data = data.set_index(["Country", "Year"])
         if ix == 0:
