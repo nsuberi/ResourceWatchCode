@@ -11,10 +11,12 @@ import rasterio
 # Library to interact with OS
 import subprocess
 import os
+import glob
 
 # Libraries to reformat data
-from misc import fix_datetime_UTC
+#from misc import fix_datetime_UTC
 import datetime
+from dateutil import parser
 import numpy as np # use to set data type for rasterio
 np.set_printoptions(threshold='nan')
 
@@ -62,72 +64,140 @@ def download_full_nc_history(tmpNcFolder):
     nc = Dataset(ncFile_name)
     return (nc)
 
-def process_full_history_to_tifs(nc, var_name, tmpTifFolder, tifFileName_stub):
-    # Time range stored in first index
-    time_range = nc[var_name].shape[0]
-    logging.info(time_range)
-    for time_step in range(time_range):
-        netcdf2tif(nc, var_name, tifFileName_stub, time_step)
+def create_formatted_dates(ref_time, time_displacements, date_pattern="%Y-%m-%d"):
+    """
+    Inputs:
+    * ref_time in datetime.datetime format
+    * list of time values corresponding to data in the nc file
+    ** time values are expressed in days since the ref_time
+    Outputs:
+    * list of strings in desired date_pattern
+    """
+    formatted_dates = [(ref_time + datetime.timedelta(days=int(time_disp))).strftime(date_pattern) for time_disp in time_displacements]
+    return(formatted_dates)
     
-def process_most_recent_to_tif(nc, var_name, tmpTifFolder, tifFileName_stub):
+
+def process_full_history_to_tifs(nc, time_var_name, data_var_name,
+                                 tmpTifFolder, tifFileName_stub):
+    # Extract time variable range
+    time_displacements = nc[time_var_name]
+    num_time_steps = len(time_displacements)
+    logging.info(num_time_steps)
+    
+    # Identify time units
+    # fuzzy=True allows the parser to pick the date out from a string with other text
+    time_units = time_displacements.getncattr('units')
+    logging.info(time_units)
+    ref_time = parser.parse(time_units, fuzzy=True)
+    logging.info(ref_time)
+    
+    # Create dates ready for tif names
+    formatted_dates = create_formatted_dates(ref_time, time_displacements)
+    
+    # Convert nc to tifs
+    netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_dates)
+    
+def process_most_recent_to_tif(nc, time_var_name, data_var_name,
+                               tmpTifFolder, tifFileName_stub):
     ### TO DO
     ## Check to see if this is a new addition
+    ## For now, simply overwrite
     ###
-    netcdf2tif(nc, var_name, tifFileName_stub, -1)
+    
+    # Extract time variable range
+    time_displacement = nc[time_var_name][-1]
+    
+    # Identify time units
+    # fuzzy=True allows the parser to pick the date out from a string with other text
+    time_units = time_displacement.getncattr('units')
+    logging.info(time_units)
+    ref_time = parser.parse(time_units, fuzzy=True)
+    logging.info(ref_time)
+    
+    # Create date ready for tif name
+    formatted_date = create_formatted_dates(ref_time, time_displacement)
+    
+    # Convert nc to tif
+    netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_date)
 
-def netcdf2tif(nc, var_name, tifFileName_stub, time_step):
+def netcdf2tif(nc, data_var_name, tmpTifFolder, tifFileName_stub, formatted_datez):
     """
     Inputs: 
     * pointer to a netcdf file, nc
     * variable name to select from the nc
     * folder to place temporary TIFFS
-    * time_step to output
+    * base for the tif file names
+    * list of formatted_datez corresponding to entries in the nc file... must be a list
     
     Outputs:
     * Formatted TIFF files ready for GEE in tmpTifFolder
     """
-    
-    data = nc[var_name][time_step,:,:]
-    tifFile_name = tifFileName_stub + "read what this date corresponds to"
+    assert(type(formatted_datez)==list)
+    for time_step, date in enumerate(formatted_datez):
+        # Intercept the case where we're only looking at the most recent observation,
+        # not the entire history
+        if len(formatted_datez) == 1:
+            time_step = -1
             
-    #data[data < -40] = -99
-    #data[data > 40] = -99
-    # This was causing an error?
-    #print (data)
-    
-    # Return lat info
-    south_lat = -90
-    north_lat = 90
-    # Return lon info
-    west_lon = -180
-    east_lon = 180
+        data = nc[data_var_name][time_step,:,:]
+        tifFile_name = tmpTifFolder + tifFileName_stub + date + "_.tif"
 
-    # Transformation function
-    transform = rasterio.transform.from_bounds(west_lon, south_lat, east_lon, north_lat, data.shape[1], data.shape[0])
-    # Profile
-    profile = {
-        'driver':'GTiff', 
-        'height':data.shape[0], 
-        'width':data.shape[1], 
-        'count':1, 
-        'dtype':np.float64, 
-        'crs':'EPSG:4326', 
-        'transform':transform, 
-        'compress':'lzw', 
-        'nodata':-99
-    }
-    
-    with rasterio.open(tifFile_name, 'w', **profile) as dst:
-        dst.write(data.astype(profile['dtype']), 1)
+        #data[data < -40] = -99
+        #data[data > 40] = -99
+        # This was causing an error?
+        #print (data)
 
-    logging.info('netCDF converted to TIFF')
+        # Return lat info
+        south_lat = -90
+        north_lat = 90
+        # Return lon info
+        west_lon = -180
+        east_lon = 180
+
+        # Transformation function
+        transform = rasterio.transform.from_bounds(west_lon, south_lat, east_lon, north_lat, data.shape[1], data.shape[0])
+        # Profile
+        profile = {
+            'driver':'GTiff', 
+            'height':data.shape[0], 
+            'width':data.shape[1], 
+            'count':1, 
+            'dtype':np.float64, 
+            'crs':'EPSG:4326', 
+            'transform':transform, 
+            'compress':'lzw', 
+            'nodata':-99
+        }
+
+        with rasterio.open(tifFile_name, 'w', **profile) as dst:
+            dst.write(data.astype(profile['dtype']), 1)
+
+        logging.info('netCDF converted to TIFF' + tifFile_name)
 
     
 ###
 ## Procedure for moving tif files to the cloud
 ### 
+
+# https://stackoverflow.com/questions/6999726/how-can-i-convert-a-datetime-object-to-milliseconds-since-epoch-unix-time-in-p
+def format_time_for_gee(time_start, time_end, orig_date_pattern="%Y-%m-%d"):
+    """
+    Inputs: some times as strings, and a date_pattern they correspond to
+    Outputs: those times as UNIX time
+    """
+    # Set epoch to measure against
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    # Convert time_start and time_end to UTC... not clear what their original time zone was
+    time_start = time_start
+    time_start = time_start
     
-def process_tif_files_to_cloud(tmpTifFolder, cloud_props):
+    # Convert the difference of time_start and time_end from the last epoch to milliseconds
+    time_start = (datetime.datetime.strptime(time_start, orig_date_pattern)-epoch).total_seconds()*1000.0
+    time_end = (datetime.datetime.strptime(time_end, orig_date_pattern)-epoch).total_seconds()*1000.0
+    
+    return(time_start, time_end)
+    
+def process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val):
     """
     Inputs:
     * folder with tif files to loop over
@@ -138,74 +208,100 @@ def process_tif_files_to_cloud(tmpTifFolder, cloud_props):
     assert(type(cloud_props)==dict)
     assert(all([prop in cloud_props.keys() for prop in ["imageCollection", "gs_bucket"]]))
     
+    # Create collection if doesn't already exist
+    cmd = ["earthengine", "create", "collection",
+           "users/resourcewatch/" + cloud_props["imageCollection"]]
+    logging.info(subprocess.check_output(cmd))
+
+    tifs = glob.glob(tmpTifFolder + "*_.tif")
     
-    tifs = glob.glob(tmpTifFolder + "/*.tif")
-    for tif in tifs:
+    for ix, tif in enumerate(tifs):
         
         # always the same for this data set
         band_names = "surface_temp_anomalies"
         
         # read time_start from the file name
-        time_start = ""
-        time_end = ""
+        # [-15:-5] is derived from the file name convention
+        if ix < (len(tifs)-1):
+            time_start = tif[-15:-5]
+            time_end = tifs[ix+1][-15:-5]
+        else:
+            time_start = tif[-15:-5]
+            ### TO DO
+            ## Adjust this... should just increment the month by 1, accounting for year overflow
+            ## 
+            time_end = (datetime.strptime(time_start,"%Y-%m-%d") + datetime.timedelta(days=31)).strftime("%Y-%m-%d")
         
+        # Times need to be expressed in milliseconds since last epoch, UNIX time
+        # https://en.wikipedia.org/wiki/Unix_time
+        # https://developers.google.com/earth-engine/glossary
+        # See discussion here: https://groups.google.com/forum/#!searchin/google-earth-engine-developers/Value$20for$20property$20$27system$3Atime_start$27$20must$20be$20a$20number.%7Csort:date/google-earth-engine-developers/OG-G_7JzQGA/rnf-9oOIGwAJ
+        # Livia.p's comment on 11/7/16
+        time_start, time_end = format_time_for_gee(time_start, time_end)
+        
+        ## Some name formatting issues:
+        # This isolates the tif name
+        tifFile_name = tif.split("/")[-1]
+        # The [:-4] below strips .tif from the asset name
+        assetName = tifFile_name[:-5]
         kwargs = {
-            "tifFile_name":tif,
-            "gs_bucket":cloud_props["gs_bucket"],
+            "localTif_loc":tif,
+            "gs_loc":"gs://"+cloud_props["gs_bucket"]+"/raster/"+cloud_props["imageCollection"]+"/"+tifFile_name,
             "gee_props":{
                 "imageCollection":cloud_props["imageCollection"],
-                "gee_asset_name": "users/resourcewatch/" + cloud_props["imageCollection"] + "/" + tif,
+                "gee_asset_name": "users/resourcewatch/" + cloud_props["imageCollection"] + "/" + assetName,
                 "band_names":band_names,
-                "time_start":time_start,
-                "time_end":time_end
+                "nodata_value":nodata_val,
+                "time_start":str(int(time_start)),
+                "time_end":str(int(time_end))
             }
         }
 
         cloudProcess(**kwargs)
     
-def cloudProcess(tifFile_name, gs_bucket, gee_props):
+def cloudProcess(localTif_loc, gs_loc, gee_props):
     """
     Inputs: 
-    * name of the imageCollection to add to
-    * name of the tifFile stored on the instance, to be uploaded
-    * name of the gee_asset
-    * properties to set on the gee_asset
-    ** gee_props should be a dictionary w/ at least four keys: 
-    ** imageCollection, gee_asset_name, band_names, time_start, time_end
+    * location of the tif to upload
+    * loc to upload to on google storage
+    * properties to set on the gee_asset, gee_props
+    ** gee_props should be a dictionary w/ at least six keys: 
+    ** imageCollection, gee_asset_name, band_names, nodata_value, time_start, time_end
     
     Outputs: files in the correct places on gs, and gee
+    
+    Assumes: Collection of correct name already exists on GEE
     """
     assert(type(gee_props)==dict)
-    assert(all([prop in gee_props.keys() for prop in ["imageCollection", "gee_asset_name", "band_names", "time_start", "time_end"]]))
+    assert(all([prop in gee_props.keys() for prop in ["imageCollection", "gee_asset_name", "band_names", "nodata_value", "time_start", "time_end"]]))
     
-    gs_loc = loadToGoogleStorage(tifFile_name, gs_bucket, gee_props["imageCollection"])
+    loadToGoogleStorage(localTif_loc, gs_loc)
     loadToGEE(gs_loc, gee_props)
 
-def loadToGoogleStorage(tifFile_name, gs_bucket, imageCollection):
-    gs_loc = "gs://" + gs_bucket + "/raster/" + imageCollection + "/" + tifFile_name
-    
-    cmd = ["gsutil", "cp", tifFile_name, gs_loc]
+def loadToGoogleStorage(localTif_loc, gs_loc):
+    cmd = ["gsutil", "cp", localTif_loc, gs_loc]
     logging.info(subprocess.check_output(cmd))
-    
-    logging.info('Up on google storage')
-
-    return(gs_loc)
+    logging.info(localTif_loc.split('/')[-1] + ' up on google storage')
 
 def loadToGEE(gs_loc, gee_props):
     
-    ### add in option to overwrite the asset if it is already up
-    
-    cmd = ["earthengine", "upload", "image",
+    # Do I need to include the CRS with --crs CRS?
+    cmd = ["earthengine", "upload", "image", "--force",
     "--asset_id", gee_props["gee_asset_name"], gs_loc,
+    "--nodata_value", gee_props["nodata_value"],
     "--pyramiding_policy=mode",
     "--bands", gee_props["band_names"],
     "-p", "system:time_start="+gee_props["time_start"],
     "-p", "system:time_end="+gee_props["time_end"]]
-    logging.info(subprocess.check_output(cmd))
+    try:
+        logging.info(subprocess.check_output(cmd))
+        logging.info('GEE asset upload started for ' + gee_props["gee_asset_name"])
+        logging.info('Check back to ensure ACL is set to public before attempting to connect to the back office')
     
-    logging.info('GEE asset upload started')
-    logging.info('Check back to ensure ACL is set to public before attempting to connect to the back office')
-    
+    except:
+        logging.error(gs_loc)
+        logging.error(gee_props)
+        logging.error("Unexpected error:" + str(sys.exc_info()[0]))
     
 ###
 ## Cleaning up
@@ -213,9 +309,8 @@ def loadToGEE(gs_loc, gee_props):
     
 def cleanUp(tmpDataFolder):
     shutil.rmtree(tmpDataFolder)
-    logging.info('container process finished, container cleaned')
-
-     
+    
+    
 ###
 ## Execution
 ### 
@@ -239,25 +334,30 @@ def main():
     os.mkdir(tmpTifFolder)
     
     # Returns the entire history of GISTEMP in a netCDF file
-    # Should this return the timeframe of the collection?
     nc = download_full_nc_history(tmpNcFolder)
-    var_name = 'tempanomaly'
+    time_var_name = 'time'
+    data_var_name = 'tempanomaly'
+    nodata_val = str(nc[data_var_name].getncattr("_FillValue"))
     
     # Populate the tmpTifFolder will all files to process
     tifFileName_stub = "cli_035_surface_temp_analysis_"
     if PROCESS_HISTORY:
-        process_full_history_to_tifs(nc, var_name, tmpTifFolder, tifFileName_stub)
+        process_full_history_to_tifs(nc, time_var_name, data_var_name, 
+                                     tmpTifFolder, tifFileName_stub)
     else:
-        process_most_recent_to_tif(nc, var_name, tmpTifFolder, tifFileName_stub)
+        process_most_recent_to_tif(nc, time_var_name, data_var_name, 
+                                   tmpTifFolder, tifFileName_stub)
     
     # Process all files in the tmpTifFolder onto the cloud
     cloud_props = {
         "imageCollection": "cli_035_surface_temp_analysis",
         "gs_bucket": "resource-watch-public"
     }
-    process_tif_files_to_cloud(tmpTifFolder, cloud_props)
+    process_tif_files_to_cloud(tmpTifFolder, cloud_props, nodata_val)
     
     # Clean up before exit
-    cleanUp(tmpDataFolder)
+    #cleanUp(tmpDataFolder)
 
+    logging.info('container process finished, container cleaned')
+    
 main()
