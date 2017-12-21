@@ -73,13 +73,10 @@ def process_tif_files_to_cloud(tmpTifFolder, cloud_props, asset_props):
 
         cloud.cloudProcess(**kwargs)
         
-        
-def process_full_history_to_tifs(nc, time_var_name, data_var_name,
-                                 tmpTifFolder, tifFileName_stub):
+def prepare_time_displacements(nc, time_var_name):
+    
     # Extract time variable range
     time_displacements = nc[time_var_name]
-    num_time_steps = len(time_displacements)
-    logging.info(num_time_steps)
     
     # Identify time units
     # fuzzy=True allows the parser to pick the date out from a string with other text
@@ -87,7 +84,14 @@ def process_full_history_to_tifs(nc, time_var_name, data_var_name,
     logging.info(time_units)
     ref_time = parser.parse(time_units, fuzzy=True)
     logging.info(ref_time)
+    return(ref_time, time_displacements)
     
+
+def process_full_history_to_tifs(nc, time_var_name, data_var_name,
+                                 tmpTifFolder, tifFileName_stub):
+    # Create reference time, and list of time displacements
+    ref_time, time_displacements = prepare_time_displacements(nc, time_var_name)
+
     # Create dates ready for tif names
     formatted_dates = misc.create_formatted_dates(ref_time, time_displacements)
     
@@ -96,17 +100,8 @@ def process_full_history_to_tifs(nc, time_var_name, data_var_name,
     
 def process_partial_history_to_tifs(nc, time_var_name, data_var_name,
                                  tmpTifFolder, tifFileName_stub, num_to_keep):
-    # Extract time variable range
-    time_displacements = nc[time_var_name]
-    num_time_steps = len(time_displacements)
-    logging.info(num_time_steps)
-    
-    # Identify time units
-    # fuzzy=True allows the parser to pick the date out from a string with other text
-    time_units = time_displacements.getncattr('units')
-    logging.info(time_units)
-    ref_time = parser.parse(time_units, fuzzy=True)
-    logging.info(ref_time)
+    # Create reference time, and list of time displacements
+    ref_time, time_displacements = prepare_time_displacements(nc, time_var_name)
     
     # Create dates ready for tif names
     formatted_dates = misc.create_formatted_dates(ref_time, time_displacements[-num_to_keep:])
@@ -121,15 +116,8 @@ def process_most_recent_to_tif(nc, time_var_name, data_var_name,
     ## For now, simply overwrite
     ###
     
-    # Extract time variable range
-    time_displacement = nc[time_var_name]
-    
-    # Identify time units
-    # fuzzy=True allows the parser to pick the date out from a string with other text
-    time_units = time_displacement.getncattr('units')
-    logging.info(time_units)
-    ref_time = parser.parse(time_units, fuzzy=True)
-    logging.info(ref_time)
+    # Create reference time, and list of time displacements
+    ref_time, time_displacements = prepare_time_displacements(nc, time_var_name)
     
     # Create date ready for tif name
     formatted_date = misc.create_formatted_dates(ref_time, [time_displacement[-1]])
