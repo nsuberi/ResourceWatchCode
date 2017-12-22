@@ -2,18 +2,19 @@ A collection of connectors that are intended to be run on a one-off, quarterly, 
 
 Folder structure:
 
--Dockerfile
--start.sh
--.dockerignore
--.env.sample
-+contents
-+-main.py
-+-requirements.txt
-++src
-++-__init__.py
-+++utilities
-+++-carto.py
-+++-misc.py
-+++-… 
-+data
-+-…
+- Dockerfile
+- start.sh
+- .dockerignore
+- .env.sample
+- time.cron
++ contents
++- main.py
++- requirements.txt
+++ src
+++- __init__.py
++++ utilities
++++- carto.py
++++- misc.py
++++- ...
++ data
++- ...
