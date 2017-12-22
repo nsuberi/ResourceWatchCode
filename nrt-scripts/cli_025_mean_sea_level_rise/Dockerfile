@@ -7,7 +7,7 @@ ENV NAME ${NAME}
 RUN apt-get update
 RUN apt-get install -y cron
 # install application libraries, comment out for vector only connectors
-RUN apt-get install -y gdal-bin libgdal-dev
+#RUN apt-get install -y gdal-bin libgdal-dev
 
 # Copy the application folder inside the container
 RUN mkdir -p /opt/$NAME/data
@@ -17,6 +17,7 @@ COPY time.cron .
 VOLUME ./data
 
 # install application libraries
+#RUN pip install numpy
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Launch script

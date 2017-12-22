@@ -1,6 +1,7 @@
 import pandas as pd
-import requests as req
+import urllib.request as req
 import logging
+from datetime import datetime, timedelta
 
 def fetchData():
     ftp = "ftp://podaac.jpl.nasa.gov/allData/merged_alt/L2/TP_J1_OSTM/global_mean_sea_level/"
@@ -22,4 +23,17 @@ def fetchData():
     df = sea_level
     df = df[~df[0].astype(str).str.contains('HDR')]
     df = df[~df[0].astype(str).str.contains('999')]
+
+    # Split df apart
+    df = df[0].str.split(expand=True)
+
     return(df)
+
+# https://stackoverflow.com/questions/20911015/decimal-years-to-datetime-in-python
+def dec_to_datetime(dec):
+    year = int(dec)
+    rem = dec - year
+    base = datetime(year, 1, 1)
+    dt = base + timedelta(seconds=(base.replace(year=base.year + 1) - base).total_seconds() * rem)
+    result = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return(result)

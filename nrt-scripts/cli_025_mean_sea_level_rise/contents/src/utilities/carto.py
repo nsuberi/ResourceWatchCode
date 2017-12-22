@@ -5,7 +5,7 @@ import json
 
 CARTO_URL = "https://{}.carto.com/api/v2/sql"
 CARTO_USER = os.environ.get('CARTO_USER')
-CARTO_KEY = os.environ.get('CARTO_KEY')
+CARTO_KEY =  os.environ.get('CARTO_KEY')
 STRICT = True
 
 def sendSql(sql, user=CARTO_USER, key=CARTO_KEY, f='', post=True):
