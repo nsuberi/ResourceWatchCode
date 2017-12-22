@@ -1,6 +1,8 @@
 1) Create a symlink between ResourceWatchCode .env file and project env files
 
-cd "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/<connector folder>"
-ln -s "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/.env" .env
+find "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/" -type d -maxdepth 1 -not -path "*/.ipy*" | while read dname; do
+  echo $dname
+  ln -s "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/.env" $dname/.env
+done
 
 ~~~
