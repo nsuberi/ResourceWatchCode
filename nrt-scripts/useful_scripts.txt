@@ -1,15 +1,19 @@
 1) Create a symlink between ResourceWatchCode .env file and project env files
 
-find "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/" -type d -maxdepth 1 -not -path "*/.ipy*" | while read dname; do
+
+from_folder="/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/"
+env_file="/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/.env"
+find $from_folder -type d -maxdepth 1 -not -path "*/.ipy*" -not -path $from_folder | while read dname; do
   echo $dname
-  ln -s "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/.env" $dname/.env
+  ln -s $env_file $dname/.env
 done
 
 ~~~
 
 2) Notes on using dirname and basename
 
-find "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/" -type d -maxdepth 1 -not -path "*/.ipy*" | while read dname; do
+from_folder="/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/"
+find $from_folder -type d -maxdepth 1 -not -path "*/.ipy*" -not -path $from_folder | while read dname; do
   echo $dname
   echo $(dirname $dname)
   echo $(basename $dname)
