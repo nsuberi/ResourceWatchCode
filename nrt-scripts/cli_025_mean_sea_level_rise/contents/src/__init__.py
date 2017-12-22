@@ -10,37 +10,31 @@ import requests as req
 
 from utilities import *
 
-CARTO_TABLE = ''
+CARTO_TABLE = 'cli_025_mean_sea_level_rise'
 CARTO_SCHEMA = OrderedDict([
+    ('altimeter_type', 'varchar'),
+    ('merged_file_cycle', 'varchar'),
+    ('year_and_fraction', 'date'),
+    ('num_obs', 'number'),
+    ('num_weighted_obs', 'number'),
+    ('gmsl_no_gia', 'number'),
+    ('sd_gmsl_no_gia', 'number'),
+    ('gmsl_gia', 'number'),
+    ('sd_gmsl_gia', 'number'),
+    ('gauss_filt_gmsl_gia', 'number'),
+    ('gauss_filt_gmsl_gia_ann_signal_removed', 'number')
 ])
-UID_FIELD = '_UID'
-TIME_FIELD = 'Began'
+
+UID_FIELD = 'year_and_fraction'
+TIME_FIELD = 'year_and_fraction'
 
 CARTO_USER = os.environ.get('CARTO_USER')
 CARTO_KEY = os.environ.get('CARTO_KEY')
 
-
-
 def fetchData():
     # Read the files that are on the FTP
-    ftp = "ftp://podaac.jpl.nasa.gov/allData/merged_alt/L2/TP_J1_OSTM/global_mean_sea_level/"
-    df = pd.DataFrame(req.urlopen(ftp).read().splitlines())
-    df["files"] = df[0].str.split(expand=True)[8].astype(str)
-    logging.info(df["files"])
-    df["files"] = df["files"].apply(lambda row: row[2:-1])
-    # Select the file that contains the data... i.e. ends with .txt, and has "V4" in the name
-    data_file_index = df["files"].apply(lambda row: row.endswith(".txt") & ("V4" in row))
-    logging.info(data_file_index)
-    # Pull out just the file name
-    remote_file_name = df.loc[data_file_index,"files"].values[0]
-    logging.info(remote_file_name)
-
-    sea_level = pd.read_csv(ftp+remote_file_name, header = None, sep = '\t')
-
-    df = sea_level
-    df = df[df[0] != 'HDR']
-    df = df[~df[0].astype(str).str.contains('HDR')]
-    df = df[~df[0].astype(str).str.contains('999')]
+    df = cli_025.fetchData()
+    logging.info(df)
 
     return(None)
 
