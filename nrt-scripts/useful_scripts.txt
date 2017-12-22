@@ -9,7 +9,7 @@ done
 
 2) Notes on using dirname and basename
 
-find "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/" -type d -maxdepth 1 -not -path "./.ipy*" | while read dname; do
+find "/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/" -type d -maxdepth 1 -not -path "*/.ipy*" | while read dname; do
   echo $dname
   echo $(dirname $dname)
   echo $(basename $dname)
