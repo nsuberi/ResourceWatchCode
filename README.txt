@@ -2,10 +2,13 @@ This repository contains code for the Resource Watch project. It is organized
 in 5 sections:
 
 * API Educational Materials
-* Data Access Assistance
+* static-data-connectors
 * Metadata Management
 * Notebooks for Exploring Specific Datasets
 * Raster Dataset Processing
+* nrt-scripts (prep for fgassert/nrt-scripts and resourcewatch/nrt-scripts)
+* Utilities
+* Pro Tips
 
 ~~~
 

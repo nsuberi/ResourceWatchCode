@@ -1,1 +1,0 @@
-replace with an "exploring netcdf" notebook
