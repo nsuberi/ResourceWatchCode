@@ -1,7 +1,7 @@
 1) Create a symlink between ResourceWatchCode .env file and project env files
 
 
-from_folder="/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/nrt-scripts/"
+from_folder="/Users/nathansuberi/Documents/GitHub/nrt-scripts/"
 env_file="/Users/nathansuberi/Desktop/Code Portfolio/ResourceWatchCode/.env"
 find $from_folder -type d -maxdepth 1 -not -path "*/.ipy*" -not -path $from_folder | while read dname; do
   echo $dname

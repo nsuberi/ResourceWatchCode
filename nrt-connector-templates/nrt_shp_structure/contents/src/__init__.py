@@ -1,10 +1,9 @@
 import logging
 import sys
+import os
 logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 
-from utilities import *
-
-def fetchData():
+def processData():
     return(None)
 
 def parseData():
