@@ -11,8 +11,7 @@ SOURCE_URL = ''
 
 ### Table name and structure
 CARTO_TABLE = ''
-CARTO_SCHEMA = OrderedDict(
-    [
+CARTO_SCHEMA = OrderedDict([
         ('value', 'numeric'),
         ('date', 'timestamp'),
         ('value_type', 'text'),
