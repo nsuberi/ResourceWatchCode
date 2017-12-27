@@ -5,11 +5,14 @@ import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from dateutil import parser
+import time
 import cartosql
 
 ### Constants
 SOURCE_URL = ''
 FILENAME_INDEX = -1
+TIMEOUT = 300
+STRICT = False
 
 ### Table name and structure
 CARTO_TABLE = ''
@@ -71,8 +74,29 @@ def processData(SOURCE_URL, filename, existing_ids):
     Actions: Retrives data, dedupes and formats it, and adds to Carto table
     Output: Number of new rows added
     """
-    with urllib.request.urlopen(os.path.join(SOURCE_URL, filename)) as f:
-        res_rows = f.read().decode('utf-8').splitlines()
+
+    # Optional logic in case this request fails with "unable to decode" response
+    start = time.time()
+    DATA_RETRIEVED = False
+    elapsed = 0
+    resource_location = os.path.join(SOURCE_URL, filename)
+
+    while existing < TIMEOUT:
+        elapsed = time.time() - start
+        try:
+            with urllib.request.urlopen(resource_locations) as f:
+                res_rows = f.read().decode('utf-8').splitlines()
+                DATA_RETRIEVED = True
+        except:
+            logging.error("Unable to retrieve resource on this attempt.")
+            time.sleep(5)
+
+    if not DATA_RETRIEVED:
+        logging.error("Unable to retrive resource before timeout of {} seconds".format(TIMEOUT))
+        if STRICT:
+            raise Exception("Unable to retrieve data from {}".format(resource_locations))
+        else:
+            return([])
 
     # Do not keep header rows, or data observations marked 999
     deduped_formatted_rows = []
