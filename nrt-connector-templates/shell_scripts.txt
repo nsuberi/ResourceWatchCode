@@ -19,3 +19,9 @@ find $from_folder -type d -maxdepth 1 -not -path "*/.ipy*" -not -path $from_fold
   echo $(basename $dname)
   echo $(basename "$(dirname $dname)")
 done
+
+~~~
+
+3) Clean up docker images
+docker rm $(docker ps -a -q)
+docker rmi $(docker images -q)

@@ -9,6 +9,7 @@ import cartosql
 
 ### Constants
 SOURCE_URL = ''
+FILENAME_INDEX = -1
 
 ### Table name and structure
 CARTO_TABLE = ''
@@ -42,6 +43,7 @@ def fetchDataFileName(SOURCE_URL):
     ALREADY_FOUND=False
     for fileline in ftp_contents:
         fileline = fileline.split()
+        logging.debug("Fileline as formatted on server: {}".format(fileline))
         potential_filename = fileline[FILENAME_INDEX]
 
         ###
@@ -110,7 +112,7 @@ def processData(SOURCE_URL, filename, existing_ids):
                     logging.debug("{} data already in table".format(date))
             else:
                 logging.debug("Skipping row: {}".format(row))
-                
+
     logging.debug("First ten deduped, formatted rows from ftp: {}".format(deduped_formatted_rows[:10]))
 
     if len(deduped_formatted_rows):
@@ -223,6 +225,7 @@ def decimalToDatetime(dec, date_pattern="%Y-%m-%d %H:%M:%S"):
     Convert a decimal representation of a year to a desired string representation
     I.e. 2016.5 -> 2016-06-01 00:00:00
     """
+    dec = float(dec)
     year = int(dec)
     rem = dec - year
     base = datetime(year, 1, 1)
