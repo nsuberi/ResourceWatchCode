@@ -11,13 +11,16 @@ SOURCE_URL = ''
 
 ### Table name and structure
 CARTO_TABLE = ''
-CARTO_SCHEMA = OrderedDict([
-    ('', 'numeric'),
-    ('', 'timestamp'),
-    ('', 'text'),
-    ('', 'geometry')])
-UID_FIELD = ''
-TIME_FIELD = ''
+CARTO_SCHEMA = OrderedDict(
+    [
+        ('value', 'numeric'),
+        ('date', 'timestamp'),
+        ('value_type', 'text'),
+        ('UID', 'text')
+        ]
+    )
+UID_FIELD = 'UID'
+TIME_FIELD = 'date'
 
 CARTO_USER = os.environ.get('CARTO_USER')
 CARTO_KEY = os.environ.get('CARTO_KEY')
@@ -69,13 +72,31 @@ def processData(SOURCE_URL, filename, existing_ids):
     # Do not keep header rows, or data observations marked 999
     deduped_formatted_rows = []
     for row in res_rows:
-        if not (row.startswith("HDR") or row.startswith("999")):
+
+        ###
+        ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
+        ###
+        if not (row.startswith("HDR")):
             potential_row = row.split()
             if len(potential_row)==len(CARTO_SCHEMA):
-                date = formatDateFunction(float(potential_row[DATETIME_INDEX]))
+
+                # Pull data available in each line
+                VALUE_INDEX = 3
+                value = potential_row[VALUE_INDEX]
+
+                # Pull times associated with those data
+                dttm_elems = {
+                    "year_ix":0,
+                    "month_ix":1,
+                    "day_ix":2
+                }
+
+                date = fix_datetime_UTC(potential_row, dttm_elems)
                 if date not in existing_ids:
-                    potential_row[DATETIME_INDEX] = date
-                    deduped_formatted_rows.append(potential_row)
+                    deduped_formatted_rows.append([date, value])
+                    logging.debug("Adding " + date + " area data to table")
+                else:
+                    logging.debug(date + " area data already in table")
 
     logging.debug("First ten deduped, formatted rows from ftp: " + str(deduped_formatted_rows[:10]))
 
@@ -92,6 +113,91 @@ def formatDateFunction(unformatteddate):
     # DO STUFF
     formatted_date = unformatteddate
     return(formatted_date)
+
+### Standardizing datetimes
+
+def fix_datetime_UTC(row, construct_datetime_manually=True,
+                     dttm_elems={},
+                     dttm_columnz=None,
+                     dttm_pattern="%Y-%m-%d %H:%M:%S"):
+    """
+    Desired datetime format: 2017-12-08T15:16:03Z
+    Corresponding date_pattern for strftime: %Y-%m-%dT%H:%M:%SZ
+
+    If date_elems_in_sep_columns=True, then there will be a dictionary date_elems
+    That at least contains the following elements:
+    date_elems = {"year_col":`int or string`,"month_col":`int or string`,"day_col":`int or string`}
+    OPTIONAL KEYS IN date_elems:
+    * hour_col
+    * min_col
+    * sec_col
+    * milli_col
+    * micro_col
+    * tz_col
+
+    Depends on:
+    from dateutil import parser
+    """
+    default_date = parser.parse("January 1 1900 00:00:00")
+
+    # Mutually exclusive to provide broken down datetime factors,
+    # and either a date, time, or datetime object
+    if construct_datetime_manually:
+        assert(type(dttm_elems)==dict)
+        assert(dttm_columnz==None)
+
+        if "year_ix" in dttm_elems:
+            year = int(row[dttm_elems["year_ix"]])
+        else:
+            year = 1900
+            logging.warning("Default year set to 1900")
+
+        if "month_ix" in dttm_elems:
+            month = int(row[dttm_elems["month_ix"]])
+        else:
+            month = 1900
+            logging.warning("Default mon set to January")
+
+        if "day_ix" not in dttm_elems:
+            day = int(row[dttm_elems["day_ix"]])
+        else:
+            day = 1
+            logging.warning("Default day set to first of month")
+
+        dt = datetime.datetime(year=year,month=month,day=day)
+        if "hour_ix" in dttm_elems:
+            dt = dt.replace(hour=int(row[dttm_elems["hour_ix"]]))
+        if "min_ix" in dttm_elems:
+            dt = dt.replace(minute=int(row[dttm_elems["min_ix"]]))
+        if "sec_ix" in dttm_elems:
+            dt = dt.replace(second=int(row[dttm_elems["sec_ix"]]))
+        if "milli_ix" in dttm_elems:
+            dt = dt.replace(milliseconds=int(row[dttm_elems["milli_ix"]]))
+        if "micro_ix" in dttm_elems:
+            dt = dt.replace(microseconds=int(row[dttm_elems["micro_ix"]]))
+        if "tzinfo_ix" in dttm_elems:
+            timezone = pytz.timezone(str(row[dttm_elems["tzinfo_ix"]]))
+            dt = timezone.localize(dt)
+
+        formatted_date = dt.strftime(dttm_pattern)
+    else:
+        # Make sure dttm_columnz was provided
+        assert(dttm_columnz!=None)
+        default_date = datetime.datetime(year=1990, month=1, day=1)
+        # If dttm_columnz is not a list, it must be a single list index, type int
+        if type(dttm_columnz) != list:
+            assert(type(dttm_columns) == int)
+            formatted_date = parser.parse(row[dttm_columnz], default=default_date).strftime(dttm_pattern)
+            # Need to provide the default parameter to parser.parse so that missing entries don't default to current date
+
+        elif len(dttm_columnz)>1:
+            # Concatenate these entries with a space in between, use dateutil.parser
+            dttm_contents = " ".join(row[dttm_columnz])
+            formatted_date = parser.parse(dttm_contents, default=default_date).strftime(dttm_pattern))
+
+    return(formatted_date)
+
+
 '''
 Options include:
 

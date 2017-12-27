@@ -1,6 +1,6 @@
 FROM python:3.6
 MAINTAINER Nathan Suberi <nathan.suberi@wri.org>
-ARG NAME=cli_025
+ARG NAME=nrt-connector
 ENV NAME ${NAME}
 
 # install core libraries
