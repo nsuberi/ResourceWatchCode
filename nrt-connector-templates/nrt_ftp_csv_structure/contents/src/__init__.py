@@ -4,6 +4,7 @@ import os
 import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from dateutil import parser
 import cartosql
 
 ### Constants
@@ -42,7 +43,11 @@ def fetchDataFileName(SOURCE_URL):
     for fileline in ftp_contents:
         fileline = fileline.split()
         potential_filename = fileline[FILENAME_INDEX]
-        # This is specific to this FTP
+
+        ###
+        ## Set conditions for finding correct file name for this FTP
+        ###
+
         if (potential_filename.endswith(".txt") and ("V4" in potential_filename)):
             if not ALREADY_FOUND:
                 filename = potential_filename
@@ -51,7 +56,7 @@ def fetchDataFileName(SOURCE_URL):
                 logging.warning("There are multiple filenames which match criteria, passing most recent")
                 filename = potential_filename
 
-    logging.info("Selected filename: " + filename)
+    logging.info("Selected filename: {}".format(filename))
     if not ALREADY_FOUND:
         logging.warning("No valid filename found")
 
@@ -70,17 +75,19 @@ def processData(SOURCE_URL, filename, existing_ids):
     # Do not keep header rows, or data observations marked 999
     deduped_formatted_rows = []
     for row in res_rows:
-
         ###
         ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
         ###
         if not (row.startswith("HDR")):
-            potential_row = row.split()
-            if len(potential_row)==len(CARTO_SCHEMA):
-
+            row = row.split()
+            ###
+            ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
+            ###
+            if len(row)==len(CARTO_SCHEMA):
+                logging.debug("Processing row: {}".format(row))
                 # Pull data available in each line
                 VALUE_INDEX = 3
-                value = potential_row[VALUE_INDEX]
+                value = row[VALUE_INDEX]
 
                 # Pull times associated with those data
                 dttm_elems = {
@@ -89,14 +96,17 @@ def processData(SOURCE_URL, filename, existing_ids):
                     "day_ix":2
                 }
 
-                date = fix_datetime_UTC(potential_row, dttm_elems)
-                if date not in existing_ids:
-                    deduped_formatted_rows.append([date, value])
-                    logging.debug("Adding " + date + " area data to table")
-                else:
-                    logging.debug(date + " area data already in table")
+                date = fix_datetime_UTC(row, dttm_elems)
 
-    logging.debug("First ten deduped, formatted rows from ftp: " + str(deduped_formatted_rows[:10]))
+                UID = genUID('value_type', date)
+
+                if UID not in existing_ids:
+                    deduped_formatted_rows.append([date, value])
+                    logging.debug("Adding {} data to table".format(date))
+                else:
+                    logging.debug("{} data already in table".format(date))
+
+    logging.debug("First ten deduped, formatted rows from ftp: {}".format(deduped_formatted_rows[:10]))
 
     if len(deduped_formatted_rows):
         cartosql.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA, deduped_formatted_rows)
@@ -106,6 +116,9 @@ def processData(SOURCE_URL, filename, existing_ids):
 ###
 ## Processing data for Carto
 ###
+
+def genUID(value_type, value_date):
+    return("_".join([str(value_type), str(value_date)]).replace(" ", "_"))
 
 def formatDateFunction(unformatteddate):
     # DO STUFF
@@ -162,7 +175,7 @@ def fix_datetime_UTC(row, construct_datetime_manually=True,
             day = 1
             logging.warning("Default day set to first of month")
 
-        dt = datetime.datetime(year=year,month=month,day=day)
+        dt = datetime(year=year,month=month,day=day)
         if "hour_ix" in dttm_elems:
             dt = dt.replace(hour=int(row[dttm_elems["hour_ix"]]))
         if "min_ix" in dttm_elems:
@@ -181,16 +194,16 @@ def fix_datetime_UTC(row, construct_datetime_manually=True,
     else:
         # Make sure dttm_columnz was provided
         assert(dttm_columnz!=None)
-        default_date = datetime.datetime(year=1990, month=1, day=1)
+        default_date = datetime(year=1990, month=1, day=1)
         # If dttm_columnz is not a list, it must be a single list index, type int
         if type(dttm_columnz) != list:
             assert(type(dttm_columns) == int)
             formatted_date = parser.parse(row[dttm_columnz], default=default_date).strftime(dttm_pattern)
             # Need to provide the default parameter to parser.parse so that missing entries don't default to current date
 
-        elif len(dttm_columnz)>1:
+        elif len(dttm_columnz)>=1:
             # Concatenate these entries with a space in between, use dateutil.parser
-            dttm_contents = " ".join(row[dttm_columnz])
+            dttm_contents = " ".join([row[col] for col in dttm_columnz])
             formatted_date = parser.parse(dttm_contents, default=default_date).strftime(dttm_pattern))
 
     return(formatted_date)
@@ -226,16 +239,16 @@ def main():
         r = cartosql.getFields(UID_FIELD, CARTO_TABLE, order='{} desc'.format(TIME_FIELD), f='csv')
         # quick read 1-column csv to list
         logging.debug("Table detected")
-        logging.debug(r.text)
+        logging.debug("Carto's response: {}".format(r.text))
         existing_ids = r.text.split('\r\n')[1:-1]
 
     ### 2. If not, create table
     else:
-        logging.info('Table {} does not exist'.format(CARTO_TABLE))
+        logging.info('Table {} does not exist, creating now'.format(CARTO_TABLE))
         cartosql.createTable(CARTO_TABLE, CARTO_SCHEMA)
         existing_ids = []
 
-    logging.debug("First 10 IDs already in table: " + str(existing_ids[:10]))
+    logging.debug("First 10 IDs already in table: {}".format(existing_ids[:10]))
 
     ### 3. Fetch data from FTP, dedupe, process
     filename = fetchDataFileName(SOURCE_URL)
