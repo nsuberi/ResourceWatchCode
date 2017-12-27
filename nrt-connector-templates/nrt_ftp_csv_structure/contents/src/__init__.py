@@ -17,8 +17,7 @@ CARTO_SCHEMA = OrderedDict(
         ('date', 'timestamp'),
         ('value_type', 'text'),
         ('UID', 'text')
-        ]
-    )
+    ])
 UID_FIELD = 'UID'
 TIME_FIELD = 'date'
 
