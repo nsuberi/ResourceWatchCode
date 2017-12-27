@@ -13,10 +13,10 @@ SOURCE_URL = ''
 ### Table name and structure
 CARTO_TABLE = ''
 CARTO_SCHEMA = OrderedDict([
-        ('value', 'numeric'),
+        ('UID', 'text'),
         ('date', 'timestamp'),
-        ('value_type', 'text'),
-        ('UID', 'text')
+        ('value', 'numeric'),
+        ('value_type', 'text')
     ])
 UID_FIELD = 'UID'
 TIME_FIELD = 'date'
@@ -26,7 +26,7 @@ CARTO_KEY = os.environ.get('CARTO_KEY')
 
 # Table limits
 MAX_ROWS = 1000000
-
+CLEAR_TABLE_FIRST = False
 ###
 ## Accessing remote data
 ###
@@ -74,6 +74,7 @@ def processData(SOURCE_URL, filename, existing_ids):
 
     # Do not keep header rows, or data observations marked 999
     deduped_formatted_rows = []
+    new_ids = []
     for row in res_rows:
         ###
         ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
@@ -96,20 +97,24 @@ def processData(SOURCE_URL, filename, existing_ids):
                     "day_ix":2
                 }
 
-                date = fix_datetime_UTC(row, dttm_elems)
+                date = fix_datetime_UTC(row, dttm_elems = dttm_elems)
 
                 UID = genUID('value_type', date)
 
+                seen_ids = existing_ids + new_ids
                 if UID not in existing_ids:
-                    deduped_formatted_rows.append([date, value])
+                    deduped_formatted_rows.append([UID, date, value, "value_type"])
                     logging.debug("Adding {} data to table".format(date))
+                    new_ids.append(UID)
                 else:
                     logging.debug("{} data already in table".format(date))
-
+            else:
+                logging.debug("Skipping row: {}".format(row))
+                
     logging.debug("First ten deduped, formatted rows from ftp: {}".format(deduped_formatted_rows[:10]))
 
     if len(deduped_formatted_rows):
-        cartosql.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA, deduped_formatted_rows)
+        cartosql.blockInsertRows(CARTO_TABLE, list(CARTO_SCHEMA.keys()), list(CARTO_SCHEMA.values()), deduped_formatted_rows)
 
     return(len(deduped_formatted_rows))
 
@@ -166,7 +171,7 @@ def fix_datetime_UTC(row, construct_datetime_manually=True,
         if "month_ix" in dttm_elems:
             month = int(row[dttm_elems["month_ix"]])
         else:
-            month = 1900
+            month = 1
             logging.warning("Default mon set to January")
 
         if "day_ix" not in dttm_elems:
@@ -204,7 +209,7 @@ def fix_datetime_UTC(row, construct_datetime_manually=True,
         elif len(dttm_columnz)>=1:
             # Concatenate these entries with a space in between, use dateutil.parser
             dttm_contents = " ".join([row[col] for col in dttm_columnz])
-            formatted_date = parser.parse(dttm_contents, default=default_date).strftime(dttm_pattern))
+            formatted_date = parser.parse(dttm_contents, default=default_date).strftime(dttm_pattern)
 
     return(formatted_date)
 
@@ -232,6 +237,9 @@ def decimalToDatetime(dec, date_pattern="%Y-%m-%d %H:%M:%S"):
 
 def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+
+    if CLEAR_TABLE_FIRST:
+        cartosql.dropTable(CARTO_TABLE)
 
     ### 1. Check if table exists, if so, retrieve UIDs
     ## Q: If not getting the field for TIME_FIELD, can you still order by it?
