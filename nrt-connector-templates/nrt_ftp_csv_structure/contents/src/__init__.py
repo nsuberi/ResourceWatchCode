@@ -12,6 +12,7 @@ import cartosql
 SOURCE_URL = ''
 FILENAME_INDEX = -1
 TIMEOUT = 300
+ENCODING = 'utf-8'
 STRICT = False
 
 ### Table name and structure
@@ -30,7 +31,86 @@ CARTO_KEY = os.environ.get('CARTO_KEY')
 
 # Table limits
 MAX_ROWS = 1000000
+MAX_AGE = datetime.today() - timedelta(days=3650)
 CLEAR_TABLE_FIRST = False
+
+###
+## Carto code
+###
+
+def checkCreateTable(table, schema, id_field, time_field):
+    '''
+    Get existing ids or create table
+    Return a list of existing ids in time order
+    '''
+    if cartosql.tableExists(table):
+        logging.info('Table {} already exists'.format(table))
+    else:
+        logging.info('Creating Table {}'.format(table))
+        cartosql.createTable(table, schema)
+        cartosql.createIndex(table, id_field, unique=True)
+        cartosql.createIndex(table, time_field)
+    return []
+
+def cleanOldRows(table, time_field, max_age, date_format='%Y-%m-%d %H:%M:%S'):
+    '''
+    Delete excess rows by age
+    Max_Age should be a datetime object or string
+    Return number of dropped rows
+    '''
+    num_expired = 0
+    if cartosql.tableExists(table):
+        if isinstance(max_age, datetime):
+            max_age = max_age.strftime(date_format)
+        elif isinstance(max_age, str):
+            logging.error('Max age must be expressed as a datetime.datetime object')
+
+        r = cartosql.deleteRows(table, "{} < '{}'".format(time_field, max_age))
+        num_expired = r.json()['total_rows']
+    else:
+        logging.error("{} table does not exist yet".format(table))
+
+    return(num_expired)
+
+def makeRoomForNewData(table, schema, uidfield, max_rows, existing_ids, new_ids):
+    '''
+    Delete excess rows by count
+    Candidate_ids should be drawn from the existing_ids pulled at the beginning of this procedure
+    At each round of new_data, if existing_ids are deleted they will have been removed from candidate_ids
+    Does not attempt to order the new data
+    Return dropped ids
+    '''
+    num_dropped = 0
+    num_new_rows = len(new_ids)
+    seen_ids = existing_ids + new_ids
+
+    if len(seen_ids) > max_rows:
+        if max_rows > num_new_rows:
+            # Can accomodate all new_ids
+            drop_ids = existing_ids[(max_rows - num_new_rows):]
+            drop_response = cartosql.deleteRowsByIDs(table, drop_ids, id_field=uidfield, dtype=schema[uidfield])
+
+            leftover_ids = existing_ids[:(max_rows - num_new_rows)]
+            overflow_ids = []
+        else:
+            # Cannot accommodate all new_ids
+            drop_ids = existing_ids + new_ids[max_rows:]
+            drop_response = cartosql.deleteRowsByIDs(table, drop_ids, id_field=uidfield, dtype=schema[uidfield])
+
+            num_lost_new_data = num_new_rows - MAX_ROWS
+            logging.warning("Drop all existing_ids, and enough oldest new ids to have MAX_ROWS number of final entries in the table.")
+            logging.warning("{} new data values were lost.".format(num_lost_new_data))
+
+            leftover_ids = []
+            overflow_ids = new_ids[:max_rows]
+
+        numdropped = drop_response.json()['total_rows']
+        if numdropped > 0:
+            logging.info('Dropped {} old rows'.format(numdropped))
+
+    return(leftover_ids, new_data, overflow_ids)
+
+
 ###
 ## Accessing remote data
 ###
@@ -68,13 +148,7 @@ def fetchDataFileName(SOURCE_URL):
     # Return the file name
     return(filename)
 
-def processData(SOURCE_URL, filename, existing_ids):
-    """
-    Inputs: FTP SOURCE_URL and filename where data is stored, existing_ids not to duplicate
-    Actions: Retrives data, dedupes and formats it, and adds to Carto table
-    Output: Number of new rows added
-    """
-
+def tryRetrieveData(SOURCE_URL, filename, TIMEOUT, ENCODING):
     # Optional logic in case this request fails with "unable to decode" response
     start = time.time()
     DATA_RETRIEVED = False
@@ -85,8 +159,9 @@ def processData(SOURCE_URL, filename, existing_ids):
         elapsed = time.time() - start
         try:
             with urllib.request.urlopen(resource_locations) as f:
-                res_rows = f.read().decode('utf-8').splitlines()
+                res_rows = f.read().decode(ENCODING).splitlines()
                 DATA_RETRIEVED = True
+                return(res_rows)
         except:
             logging.error("Unable to retrieve resource on this attempt.")
             time.sleep(5)
@@ -98,9 +173,35 @@ def processData(SOURCE_URL, filename, existing_ids):
         else:
             return([])
 
-    # Do not keep header rows, or data observations marked 999
-    deduped_formatted_rows = []
-    new_ids = []
+def insertIfNew(newUID, newValues, existing_ids, new_data):
+    '''
+    For new UID, values, check whether this is already in our table
+    If not, add it
+    Return new_ids and new_data
+    '''
+    seen_ids = existing_ids + list(new_data.keys())
+    if newUID not in seen_ids:
+        new_data[newUID] = newValues
+        logging.debug("Adding {} data to table".format(newUID))
+    else:
+        logging.debug("{} data already in table".format(newUID))
+    return(new_data)
+
+def processData(SOURCE_URL, filename, existing_ids, max_rows):
+    """
+    Inputs: FTP SOURCE_URL and filename where data is stored, existing_ids not to duplicate
+    Actions: Retrives data, dedupes and formats it, and adds to Carto table
+    Output: Number of new rows added
+    """
+    # Totals, persist throughout any pagination in next step
+    leftover_ids = existing_ids.copy()
+    num_new = 0
+    num_overflow = 0
+
+    ### Specific to each page/chunk in data processing
+
+    res_rows = tryRetrieveData(SOURCE_URL, filename, TIMEOUT, ENCODING)
+    new_data = {}
     for row in res_rows:
         ###
         ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
@@ -126,23 +227,28 @@ def processData(SOURCE_URL, filename, existing_ids):
                 date = fix_datetime_UTC(row, dttm_elems = dttm_elems)
 
                 UID = genUID('value_type', date)
+                values = [UID, date, value, "value_type"]
 
-                seen_ids = existing_ids + new_ids
-                if UID not in existing_ids:
-                    deduped_formatted_rows.append([UID, date, value, "value_type"])
-                    logging.debug("Adding {} data to table".format(date))
-                    new_ids.append(UID)
-                else:
-                    logging.debug("{} data already in table".format(date))
+                new_data = insertIfNew(UID, values, leftover_ids, new_data)
             else:
                 logging.debug("Skipping row: {}".format(row))
 
-    logging.debug("First ten deduped, formatted rows from ftp: {}".format(deduped_formatted_rows[:10]))
+    if len(new_data):
+        # Check whether should delete to make room
+        new_ids = list(new_data.keys())
+        leftover_ids, new_ids, overflow_ids = makeRoomForNewData(CARTO_TABLE, CARTO_SCHEMA, UID_FIELD, max_rows, leftover_ids, new_ids)
+        for overflow in overflow_ids:
+            new_data.pop(overflow)
 
-    if len(deduped_formatted_rows):
-        cartosql.blockInsertRows(CARTO_TABLE, list(CARTO_SCHEMA.keys()), list(CARTO_SCHEMA.values()), deduped_formatted_rows)
+        num_overflow += len(overflow_ids)
+        num_new += len(new_ids)
+        new_data = list(new_data.values())
+        cartosql.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA.keys(), CARTO_SCHEMA.values(), new_data)
 
-    return(len(deduped_formatted_rows))
+    ### End page/chunk processing
+
+    num_leftover = len(leftover_ids)
+    return(num_leftover, num_new, num_overflow)
 
 ###
 ## Processing data for Carto
@@ -268,44 +374,26 @@ def main():
     if CLEAR_TABLE_FIRST:
         cartosql.dropTable(CARTO_TABLE)
 
-    ### 1. Check if table exists, if so, retrieve UIDs
-    ## Q: If not getting the field for TIME_FIELD, can you still order by it?
-    if cartosql.tableExists(CARTO_TABLE):
-        r = cartosql.getFields(UID_FIELD, CARTO_TABLE, order='{} desc'.format(TIME_FIELD), f='csv')
-        # quick read 1-column csv to list
-        logging.debug("Table detected")
-        logging.debug("Carto's response: {}".format(r.text))
-        existing_ids = r.text.split('\r\n')[1:-1]
+    ### 1. Check if table exists, if not, create it
+    checkCreateTable(CARTO_TABLE, CARTO_SCHEMA, UID_FIELD, TIME_FIELD)
 
-    ### 2. If not, create table
-    else:
-        logging.info('Table {} does not exist, creating now'.format(CARTO_TABLE))
-        cartosql.createTable(CARTO_TABLE, CARTO_SCHEMA)
-        existing_ids = []
+    ### 2. Delete old rows
+    num_expired = cleanOldRows(CARTO_TABLE, TIME_FIELD, MAX_AGE)
+
+    ### 3. Retrieve existing data
+    r = cartosql.getFields(id_field, table, order='{} desc'.format(time_field), f='csv')
+    existing_ids = r.text.split('\r\n')[1:-1]
+    num_existing = len(existing_ids)
 
     logging.debug("First 10 IDs already in table: {}".format(existing_ids[:10]))
 
-    ### 3. Fetch data from FTP, dedupe, process
+    ### 4. Fetch data from FTP, dedupe, process
     filename = fetchDataFileName(SOURCE_URL)
-    num_new_rows = processData(SOURCE_URL, filename, existing_ids)
+    num_leftover, num_new, num_overflow = processData(SOURCE_URL, filename, existing_ids, MAX_ROWS)
 
-    ### 4. Remove old to make room for new
-    oldcount = len(existing_ids)
-    logging.info('Previous rows: {}, New rows: {}, Max: {}'.format(oldcount, num_new_rows, MAX_ROWS))
-
-    if oldcount + num_new_rows > MAX_ROWS:
-        if MAX_ROWS > len(new_rows):
-            # ids_already_in_table are arranged in increasing order
-            # Drop all except the most recent ones we have room to keep
-            drop_ids = existing_ids[(MAX_ROWS - len(new_rows)):]
-            drop_response = cartosql.deleteRowsByIDs(CARTO_TABLE, UID_FIELD, drop_ids)
-        else:
-            logging.warning("There are more new rows than can be accommodated in the table. All existing_ids were dropped")
-            drop_response = cartosql.deleteRowsByIDs(CARTO_TABLE, UID_FIELD, existing_ids)
-
-        numdropped = drop_response.json()['total_rows']
-        if numdropped > 0:
-            logging.info('Dropped {} old rows'.format(numdropped))
+    ### 5. Notify results
+    num_overwritten = num_existing - num_leftover
+    logging.info('Expired rows: {}, Previous rows: {}, New rows: {}, Overwritten rows: {}, Max: {}'.format(num_expired, num_existing, num_new, num_overwritten, MAX_ROWS))
 
     ###
     logging.info("SUCCESS")
