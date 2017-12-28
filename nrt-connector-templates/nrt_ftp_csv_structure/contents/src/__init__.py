@@ -72,44 +72,22 @@ def cleanOldRows(table, time_field, max_age, date_format='%Y-%m-%d %H:%M:%S'):
 
     return(num_expired)
 
-def makeRoomForNewData(table, schema, uidfield, max_rows, existing_ids, new_ids):
-    '''
-    Delete excess rows by count
-    Candidate_ids should be drawn from the existing_ids pulled at the beginning of this procedure
-    At each round of new_data, if existing_ids are deleted they will have been removed from candidate_ids
-    Does not attempt to order the new data
-    Return dropped ids
-    '''
-    num_dropped = 0
-    num_new_rows = len(new_ids)
-    seen_ids = existing_ids + new_ids
+def deleteExcessRows(table, max_rows, time_field):
+    '''Delete rows to bring count down to max_rows'''
+    num_dropped=0
+    # 1. get sorted ids (old->new)
+    r = cartosql.getFields('cartodb_id', table, order='{} desc'.format(time_field),
+                           f='csv')
+    ids = r.text.split('\r\n')[1:-1]
 
-    if len(seen_ids) > max_rows:
-        if max_rows > num_new_rows:
-            # Can accomodate all new_ids
-            drop_ids = existing_ids[(max_rows - num_new_rows):]
-            drop_response = cartosql.deleteRowsByIDs(table, drop_ids, id_field=uidfield, dtype=schema[uidfield])
+    # 2. delete excess
+    if len(ids) > max_rows:
+        r = cartosql.deleteRowsByIDs(table, ids[max_rows:])
+        num_dropped += r.json()['total_rows']
+    if num_dropped:
+        logging.info('Dropped {} old rows from {}'.format(num_dropped, table))
 
-            leftover_ids = existing_ids[:(max_rows - num_new_rows)]
-            overflow_ids = []
-        else:
-            # Cannot accommodate all new_ids
-            drop_ids = existing_ids + new_ids[max_rows:]
-            drop_response = cartosql.deleteRowsByIDs(table, drop_ids, id_field=uidfield, dtype=schema[uidfield])
-
-            num_lost_new_data = num_new_rows - MAX_ROWS
-            logging.warning("Drop all existing_ids, and enough oldest new ids to have MAX_ROWS number of final entries in the table.")
-            logging.warning("{} new data values were lost.".format(num_lost_new_data))
-
-            leftover_ids = []
-            overflow_ids = new_ids[:max_rows]
-
-        numdropped = drop_response.json()['total_rows']
-        if numdropped > 0:
-            logging.info('Dropped {} old rows'.format(numdropped))
-
-    return(leftover_ids, new_data, overflow_ids)
-
+    return(num_dropped)
 
 ###
 ## Accessing remote data
@@ -151,27 +129,36 @@ def fetchDataFileName(SOURCE_URL):
 def tryRetrieveData(SOURCE_URL, filename, TIMEOUT, ENCODING):
     # Optional logic in case this request fails with "unable to decode" response
     start = time.time()
-    DATA_RETRIEVED = False
     elapsed = 0
     resource_location = os.path.join(SOURCE_URL, filename)
 
-    while existing < TIMEOUT:
+    while elapsed < TIMEOUT:
         elapsed = time.time() - start
         try:
-            with urllib.request.urlopen(resource_locations) as f:
+            with urllib.request.urlopen(resource_location) as f:
                 res_rows = f.read().decode(ENCODING).splitlines()
-                DATA_RETRIEVED = True
                 return(res_rows)
         except:
             logging.error("Unable to retrieve resource on this attempt.")
             time.sleep(5)
 
-    if not DATA_RETRIEVED:
-        logging.error("Unable to retrive resource before timeout of {} seconds".format(TIMEOUT))
-        if STRICT:
-            raise Exception("Unable to retrieve data from {}".format(resource_locations))
-        else:
-            return([])
+    logging.error("Unable to retrive resource before timeout of {} seconds".format(TIMEOUT))
+    if STRICT:
+        raise Exception("Unable to retrieve data from {}".format(resource_locations))
+    return([])
+
+
+
+def genUID(value_type, value_date):
+    return("_".join([str(value_type), str(value_date)]).replace(" ", "_"))
+
+def formatDateFunction(unformatteddate):
+    # DO STUFF
+    formatted_date = unformatteddate
+    return(formatted_date)
+
+
+
 
 def insertIfNew(newUID, newValues, existing_ids, new_data):
     '''
@@ -187,16 +174,13 @@ def insertIfNew(newUID, newValues, existing_ids, new_data):
         logging.debug("{} data already in table".format(newUID))
     return(new_data)
 
-def processData(SOURCE_URL, filename, existing_ids, max_rows):
+def processData(SOURCE_URL, filename, existing_ids):
     """
     Inputs: FTP SOURCE_URL and filename where data is stored, existing_ids not to duplicate
     Actions: Retrives data, dedupes and formats it, and adds to Carto table
     Output: Number of new rows added
     """
-    # Totals, persist throughout any pagination in next step
-    leftover_ids = existing_ids.copy()
     num_new = 0
-    num_overflow = 0
 
     ### Specific to each page/chunk in data processing
 
@@ -235,134 +219,13 @@ def processData(SOURCE_URL, filename, existing_ids, max_rows):
 
     if len(new_data):
         # Check whether should delete to make room
-        new_ids = list(new_data.keys())
-        leftover_ids, new_ids, overflow_ids = makeRoomForNewData(CARTO_TABLE, CARTO_SCHEMA, UID_FIELD, max_rows, leftover_ids, new_ids)
-        for overflow in overflow_ids:
-            new_data.pop(overflow)
-
-        num_overflow += len(overflow_ids)
-        num_new += len(new_ids)
+        num_new += len(new_data)
         new_data = list(new_data.values())
         cartosql.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA.keys(), CARTO_SCHEMA.values(), new_data)
 
     ### End page/chunk processing
 
-    num_leftover = len(leftover_ids)
-    return(num_leftover, num_new, num_overflow)
-
-###
-## Processing data for Carto
-###
-
-def genUID(value_type, value_date):
-    return("_".join([str(value_type), str(value_date)]).replace(" ", "_"))
-
-def formatDateFunction(unformatteddate):
-    # DO STUFF
-    formatted_date = unformatteddate
-    return(formatted_date)
-
-### Standardizing datetimes
-
-def fix_datetime_UTC(row, construct_datetime_manually=True,
-                     dttm_elems={},
-                     dttm_columnz=None,
-                     dttm_pattern="%Y-%m-%d %H:%M:%S"):
-    """
-    Desired datetime format: 2017-12-08T15:16:03Z
-    Corresponding date_pattern for strftime: %Y-%m-%dT%H:%M:%SZ
-
-    If date_elems_in_sep_columns=True, then there will be a dictionary date_elems
-    That at least contains the following elements:
-    date_elems = {"year_col":`int or string`,"month_col":`int or string`,"day_col":`int or string`}
-    OPTIONAL KEYS IN date_elems:
-    * hour_col
-    * min_col
-    * sec_col
-    * milli_col
-    * micro_col
-    * tz_col
-
-    Depends on:
-    from dateutil import parser
-    """
-    default_date = parser.parse("January 1 1900 00:00:00")
-
-    # Mutually exclusive to provide broken down datetime factors,
-    # and either a date, time, or datetime object
-    if construct_datetime_manually:
-        assert(type(dttm_elems)==dict)
-        assert(dttm_columnz==None)
-
-        if "year_ix" in dttm_elems:
-            year = int(row[dttm_elems["year_ix"]])
-        else:
-            year = 1900
-            logging.warning("Default year set to 1900")
-
-        if "month_ix" in dttm_elems:
-            month = int(row[dttm_elems["month_ix"]])
-        else:
-            month = 1
-            logging.warning("Default mon set to January")
-
-        if "day_ix" not in dttm_elems:
-            day = int(row[dttm_elems["day_ix"]])
-        else:
-            day = 1
-            logging.warning("Default day set to first of month")
-
-        dt = datetime(year=year,month=month,day=day)
-        if "hour_ix" in dttm_elems:
-            dt = dt.replace(hour=int(row[dttm_elems["hour_ix"]]))
-        if "min_ix" in dttm_elems:
-            dt = dt.replace(minute=int(row[dttm_elems["min_ix"]]))
-        if "sec_ix" in dttm_elems:
-            dt = dt.replace(second=int(row[dttm_elems["sec_ix"]]))
-        if "milli_ix" in dttm_elems:
-            dt = dt.replace(milliseconds=int(row[dttm_elems["milli_ix"]]))
-        if "micro_ix" in dttm_elems:
-            dt = dt.replace(microseconds=int(row[dttm_elems["micro_ix"]]))
-        if "tzinfo_ix" in dttm_elems:
-            timezone = pytz.timezone(str(row[dttm_elems["tzinfo_ix"]]))
-            dt = timezone.localize(dt)
-
-        formatted_date = dt.strftime(dttm_pattern)
-    else:
-        # Make sure dttm_columnz was provided
-        assert(dttm_columnz!=None)
-        default_date = datetime(year=1990, month=1, day=1)
-        # If dttm_columnz is not a list, it must be a single list index, type int
-        if type(dttm_columnz) != list:
-            assert(type(dttm_columns) == int)
-            formatted_date = parser.parse(row[dttm_columnz], default=default_date).strftime(dttm_pattern)
-            # Need to provide the default parameter to parser.parse so that missing entries don't default to current date
-
-        elif len(dttm_columnz)>=1:
-            # Concatenate these entries with a space in between, use dateutil.parser
-            dttm_contents = " ".join([row[col] for col in dttm_columnz])
-            formatted_date = parser.parse(dttm_contents, default=default_date).strftime(dttm_pattern)
-
-    return(formatted_date)
-
-
-'''
-Options include:
-
-# https://stackoverflow.com/questions/20911015/decimal-years-to-datetime-in-python
-def decimalToDatetime(dec, date_pattern="%Y-%m-%d %H:%M:%S"):
-    """
-    Convert a decimal representation of a year to a desired string representation
-    I.e. 2016.5 -> 2016-06-01 00:00:00
-    """
-    dec = float(dec)
-    year = int(dec)
-    rem = dec - year
-    base = datetime(year, 1, 1)
-    dt = base + timedelta(seconds=(base.replace(year=base.year + 1) - base).total_seconds() * rem)
-    result = dt.strftime(date_pattern)
-    return(result)
-'''
+    return(num_new)
 
 ###
 ## Application code
@@ -381,7 +244,7 @@ def main():
     num_expired = cleanOldRows(CARTO_TABLE, TIME_FIELD, MAX_AGE)
 
     ### 3. Retrieve existing data
-    r = cartosql.getFields(id_field, table, order='{} desc'.format(time_field), f='csv')
+    r = cartosql.getFields(UID_FIELD, CARTO_TABLE, order='{} desc'.format(TIME_FIELD), f='csv')
     existing_ids = r.text.split('\r\n')[1:-1]
     num_existing = len(existing_ids)
 
@@ -389,11 +252,11 @@ def main():
 
     ### 4. Fetch data from FTP, dedupe, process
     filename = fetchDataFileName(SOURCE_URL)
-    num_leftover, num_new, num_overflow = processData(SOURCE_URL, filename, existing_ids, MAX_ROWS)
+    num_new = processData(SOURCE_URL, filename, existing_ids)
 
-    ### 5. Notify results
-    num_overwritten = num_existing - num_leftover
-    logging.info('Expired rows: {}, Previous rows: {}, New rows: {}, Overwritten rows: {}, Max: {}'.format(num_expired, num_existing, num_new, num_overwritten, MAX_ROWS))
+    ### 5. Delete data to get back to MAX_ROWS
+    num_deleted = deleteExcessRows(CARTO_TABLE, MAX_ROWS, TIME_FIELD)
 
-    ###
+    ### 6. Notify results
+    logging.info('Expired rows: {}, Previous rows: {},  New rows: {}, Dropped rows: {}, Max: {}'.format(num_expired, num_existing, num_new, num_deleted, MAX_ROWS))
     logging.info("SUCCESS")

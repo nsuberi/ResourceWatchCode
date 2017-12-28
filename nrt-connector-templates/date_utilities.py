@@ -9,6 +9,7 @@ def decimalToDatetime(dec, date_pattern="%Y-%m-%d %H:%M:%S"):
     Convert a decimal representation of a year to a desired string representation
     I.e. 2016.5 -> 2016-06-01 00:00:00
     """
+    dec = float(dec)
     year = int(dec)
     rem = dec - year
     base = datetime(year, 1, 1)
@@ -16,7 +17,9 @@ def decimalToDatetime(dec, date_pattern="%Y-%m-%d %H:%M:%S"):
     result = dt.strftime(date_pattern)
     return(result)
 
-### Standardizing datetimes
+def recentEnough(date, MAX_AGE):
+    '''Assume date is a string, MAX_AGE a datetime'''
+    return(parser.parse(date) > MAX_AGE)
 
 def structure_dttm_from_parts(row, dttm_elems, dttm_pattern):
     dt = datetime.datetime(year=int(row[dttm_elems["year_col"]]),
