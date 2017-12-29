@@ -1,22 +1,3 @@
-def deleteIndices(CARTO_TABLE):
-    r = cartosql.sendSql("select * from pg_indexes where tablename='{}'".format(CARTO_TABLE))
-    indexes = r.json()["rows"]
-    logging.debug("Existing indices: {}".format(indexes))
-    for index in indexes:
-        try:
-            sql = "alter table {} drop constraint {}".format(CARTO_TABLE, index["indexname"])
-            r = cartosql.sendSql(sql)
-            logging.debug(r.text)
-        except:
-            logging.error("couldn't drop constraint")
-        try:
-            sql = "drop index {}".format(index["indexname"])
-            r = cartosql.sendSql(sql)
-            logging.debug(r.text)
-        except:
-            logging.error("couldn't drop index")
-
-
 def checkCreateTable(table, schema, id_field, time_field):
     '''
     Create table if it doesn't already exist
@@ -49,6 +30,26 @@ def cleanOldRows(table, time_field, max_age, date_format='%Y-%m-%d %H:%M:%S'):
         logging.error("{} table does not exist yet".format(table))
 
     return(num_expired)
+
+def deleteExcessRows(table, max_rows, time_field):
+    '''Delete rows to bring count down to max_rows'''
+    num_dropped=0
+    # 1. get sorted ids (old->new)
+    r = cartosql.getFields('cartodb_id', table, order='{} desc'.format(time_field),
+                           f='csv')
+    ids = r.text.split('\r\n')[1:-1]
+
+    # 2. delete excess
+    if len(ids) > max_rows:
+        r = cartosql.deleteRowsByIDs(table, ids[max_rows:])
+        num_dropped += r.json()['total_rows']
+    if num_dropped:
+        logging.info('Dropped {} old rows from {}'.format(num_dropped, table))
+
+    return(num_dropped)
+
+
+### Deprecated
 
 def makeRoomForNewData(table, schema, uidfield, max_rows, leftover_ids, new_ids):
     '''
@@ -88,3 +89,21 @@ def makeRoomForNewData(table, schema, uidfield, max_rows, leftover_ids, new_ids)
             logging.info('Dropped {} old rows'.format(numdropped))
 
     return(leftover_ids, new_ids, overflow_ids)
+
+def deleteIndices(CARTO_TABLE):
+    r = cartosql.sendSql("select * from pg_indexes where tablename='{}'".format(CARTO_TABLE))
+    indexes = r.json()["rows"]
+    logging.debug("Existing indices: {}".format(indexes))
+    for index in indexes:
+        try:
+            sql = "alter table {} drop constraint {}".format(CARTO_TABLE, index["indexname"])
+            r = cartosql.sendSql(sql)
+            logging.debug(r.text)
+        except:
+            logging.error("couldn't drop constraint")
+        try:
+            sql = "drop index {}".format(index["indexname"])
+            r = cartosql.sendSql(sql)
+            logging.debug(r.text)
+        except:
+            logging.error("couldn't drop index")

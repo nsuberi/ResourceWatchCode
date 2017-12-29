@@ -1,11 +1,11 @@
 import logging
 import sys
 import os
+import time
 import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from dateutil import parser
-import time
 import cartosql
 
 ### Constants
@@ -14,6 +14,7 @@ FILENAME_INDEX = -1
 TIMEOUT = 300
 ENCODING = 'utf-8'
 STRICT = False
+CLEAR_TABLE_FIRST = False
 
 ### Table name and structure
 CARTO_TABLE = ''
@@ -31,8 +32,7 @@ CARTO_KEY = os.environ.get('CARTO_KEY')
 
 # Table limits
 MAX_ROWS = 1000000
-MAX_AGE = datetime.today() - timedelta(days=3650)
-CLEAR_TABLE_FIRST = False
+MAX_AGE = datetime.today() - timedelta(days=365*150)
 
 ###
 ## Carto code
@@ -49,8 +49,8 @@ def checkCreateTable(table, schema, id_field, time_field):
         logging.info('Creating Table {}'.format(table))
         cartosql.createTable(table, schema)
         cartosql.createIndex(table, id_field, unique=True)
-        cartosql.createIndex(table, time_field)
-    return []
+        if id_field != time_field:
+            cartosql.createIndex(table, time_field)
 
 def cleanOldRows(table, time_field, max_age, date_format='%Y-%m-%d %H:%M:%S'):
     '''
@@ -123,7 +123,6 @@ def fetchDataFileName(SOURCE_URL):
     if not ALREADY_FOUND:
         logging.warning("No valid filename found")
 
-    # Return the file name
     return(filename)
 
 def tryRetrieveData(SOURCE_URL, filename, TIMEOUT, ENCODING):
@@ -208,17 +207,18 @@ def processData(SOURCE_URL, filename, existing_ids):
                     "day_ix":2
                 }
 
-                date = fix_datetime_UTC(row, dttm_elems = dttm_elems)
+                date = datetime(year=int(row[0]),
+                                month=int(row[1]),
+                                day=int(row[2])).strftime("%Y-%m-%d")
 
                 UID = genUID('value_type', date)
                 values = [UID, date, value, "value_type"]
 
-                new_data = insertIfNew(UID, values, leftover_ids, new_data)
+                new_data = insertIfNew(UID, values, existing_ids, new_data)
             else:
                 logging.debug("Skipping row: {}".format(row))
 
     if len(new_data):
-        # Check whether should delete to make room
         num_new += len(new_data)
         new_data = list(new_data.values())
         cartosql.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA.keys(), CARTO_SCHEMA.values(), new_data)
@@ -235,6 +235,7 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
     if CLEAR_TABLE_FIRST:
+        logging.info("clearing table")
         cartosql.dropTable(CARTO_TABLE)
 
     ### 1. Check if table exists, if not, create it
