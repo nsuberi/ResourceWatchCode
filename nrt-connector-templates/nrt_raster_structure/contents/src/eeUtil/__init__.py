@@ -64,14 +64,13 @@ def getHome():
     '''Get user root directory'''
     global _home
     _home = ee.data.getAssetRoots()[0]['id']
+    logging.debug("Home: {}".format(_home))
     return _home
-
 
 def _getHome():
     '''Cached get user root directory'''
     global _home
     return _home if _home else getHome()
-
 
 def _path(path):
     '''Add user root directory to path if not already existing'''
@@ -235,7 +234,7 @@ def uploadAsset(filename, asset, gs_prefix='', date='', public=False,
     '''
     gs_uris = gsStage(filename, gs_prefix)
     try:
-        ingestAsset(gs_uris[0], asset, date, public, timeout)
+        ingestAsset(gs_uris[0], asset, date, timeout)
         if public:
             setAcl(asset, 'public')
     except Exception as e:
@@ -257,7 +256,7 @@ def uploadAssets(files, assets, gs_prefix='', dates='', public=False,
     `clean`        delete files from GS after completion
     '''
     gs_uris = gsStage(files, gs_prefix)
-    task_ids = [ingestAsset(gs_uris[i], assets[i], dates[i], public)
+    task_ids = [ingestAsset(gs_uris[i], assets[i], dates[i], timeout)
                 for i in range(len(files))]
     try:
         waitForTasks(task_ids, timeout)
@@ -276,11 +275,13 @@ def removeAsset(asset, recursive=False):
     if recursive:
         if info(asset)['type'] in (ee.data.ASSET_TYPE_FOLDER,
                                    ee.data.ASSET_TYPE_IMAGE_COLL):
-            for child in ls(asset):
+            sub_assets = ls(asset, abspath=True)
+            logging.debug("Sub assets of {}: {}".format(asset, sub_assets))
+            for child in sub_assets:
                 removeAsset(child)
-    logging.debug('Deleting asset {}'.format(asset))
-    ee.data.deleteAsset(_path(asset))
-
+    asset_path = _path(asset)
+    logging.debug('Deleting asset {}'.format(asset_path))
+    ee.data.deleteAsset(asset_path)
 
 def gsStage(files, prefix=''):
     '''Upload files to GS with prefix'''

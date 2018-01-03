@@ -11,3 +11,6 @@ def insertIfNew(newUID, newValues, existing_ids, new_data):
     else:
         logging.debug("{} data already in table".format(newUID))
     return(new_data)
+
+def cleanUp(tmpDataFolder):
+    shutil.rmtree(tmpDataFolder)

@@ -109,3 +109,29 @@ def fix_datetime_UTC(data_df, dttm_elems_in_sep_columns=True,
             dttm_col = dttm_contents.apply(lambda dttm: parser.parse(dttm, default=default_date).strftime(dttm_pattern))
 
     return(dttm_col)
+
+def retrieve_formatted_dates(nc, time_var_name, date_pattern=DATE_FORMAT):
+    '''
+    Inputs:
+    * pointer to a netcdf file
+    * name of the time variable
+    Outputs:
+    * dates formatted according to DATE_FORMAT
+    '''
+    # Extract time variable range
+    nc = Dataset(nc)
+    time_displacements = nc[time_var_name]
+    # Clean up reference to nc object
+    del nc
+
+    # Identify time units
+    # fuzzy=True allows the parser to pick the date out from a string with other text
+    time_units = time_displacements.getncattr('units')
+    logging.debug("Time units: {}".format(time_units))
+    ref_time = parser.parse(time_units, fuzzy=True)
+    logging.debug("Reference time: {}".format(ref_time))
+
+    # Format times to DATE_FORMAT
+    formatted_dates = [(ref_time + datetime.timedelta(days=int(time_disp))).strftime(date_pattern) for time_disp in time_displacements]
+    logging.debug('Dates available: {}'.format(formatted_dates))
+    return(formatted_dates)
