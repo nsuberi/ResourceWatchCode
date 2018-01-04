@@ -1,2 +1,39 @@
 # Commands to help with GDAL troubleshooting
 docker build -t nrt-connector --build-arg NAME=nrt-connector .
+docker run --log-driver=syslog --log-opt syslog-address=$LOG --log-opt tag=nrt-connector -it  -v "$(pwd)"/data:/opt/nrt-connector/data --env-file .env --rm nrt-connector sh
+
+gdalwarp -overwrite -srcnodata "32767" -t_srs EPSG:4326 -te -180 -90 180 90 -ot int16 -of VRT -r "bilinear" nc_file.nc data.vrt
+gdal_translate -co COMPRESS=LZW -of GTIFF data.vrt data.tif
+
+
+# Commands to warp... problems acknowledged
+
+vrt_name = 'data.vrt'
+tif_name = 'data.tif'
+# extract subdataset by name
+sds_path = subdataset_name.format(nc_name=nc_file, var_name=var_name)
+logging.info("Checking for {}".format(sds_path))
+subprocess.check_call('ls', shell=True)
+
+logging.info("Checking for gdalwarp formats")
+subprocess.check_call('gdalwarp --formats', shell=True)
+
+logging.info("Converting {} to {}".format(sds_path, tif_name))
+# set nodata  is out of range of Byte type
+logging.info('Assert reprojection of {} to {}, EPSG:4326'.format(nc_file, vrt_name))
+reproject = ' '.join(['gdalwarp','-overwrite','-srcnodata','"{}"'.format(nodata_value),
+                '-t_srs','EPSG:4326','-te','-180 -90 180 90','-ot',data_type,'-of','VRT',
+                '-r','"bilinear"',
+                nc_file, vrt_name])
+
+logging.info(reproject)
+subprocess.check_call(reproject, cwd="/opt/nrt-connector/", shell=True)
+
+logging.info('Assert compression of {} to {}, EPSG:4326'.format(vrt_name, tif_name))
+compress = ' '.join(['gdal_translate','-co','"COMPRESS=LZW"','-of','GTIFF',
+                    vrt_name, tif_name])
+subprocess.check_call(compress, cwd="/opt/nrt-connector/", shell=True)
+
+logging.info('Check results of conversion to {}'.format(tif_name))
+info = ' '.join(['gdalinfo', tif_name])
+subprocess.check_call(info, shell=True)
