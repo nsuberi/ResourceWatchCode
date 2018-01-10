@@ -1,263 +1,191 @@
+import os
 import logging
 import sys
-import os
-import time
-import urllib.request
-from collections import OrderedDict
-from datetime import datetime, timedelta
-from dateutil import parser
+import requests
+from collections import OrderedDict, defaultdict
+from datetime import datetime
 import cartosql
 
-### Constants
-SOURCE_URL = ''
-FILENAME_INDEX = -1
-TIMEOUT = 300
-ENCODING = 'utf-8'
-STRICT = False
+# Constants
+LATEST_URL = 'http://popdata.unhcr.org/api/stats/asylum_seekers_monthly.json?year={year}'
+
+CARTO_TABLE = 'soc_038_monthly_asylum_requests'
+CARTO_SCHEMA = OrderedDict([
+    ('_UID', 'text'),
+    ('date', 'timestamp'),
+    ('country', 'text'),
+    ('value_type', 'text'),
+    ('num_people', 'numeric'),
+    ('some_stats_confidential', 'text')
+])
+UID_FIELD = '_UID'
+TIME_FIELD = 'date'
+DATA_DIR = 'data'
+LOG_LEVEL = logging.INFO
+DATE_FORMAT = '%Y-%m-%d'
 CLEAR_TABLE_FIRST = False
 
-### Table name and structure
-CARTO_TABLE = ''
-CARTO_SCHEMA = OrderedDict([
-        ('UID', 'text'),
-        ('date', 'timestamp'),
-        ('value', 'numeric'),
-        ('value_type', 'text')
-    ])
-UID_FIELD = 'UID'
-TIME_FIELD = 'date'
+# Limit 1M rows, drop older than 20yrs
+MAXROWS = 1000000
+MAXAGE = datetime.today().year - 20
 
-CARTO_USER = os.environ.get('CARTO_USER')
-CARTO_KEY = os.environ.get('CARTO_KEY')
+def genUID(date, country, valuetype):
+    '''Generate unique id'''
+    return '{}_{}_{}'.format(country, date, valuetype)
 
-# Table limits
-MAX_ROWS = 1000000
-MAX_AGE = datetime.today() - timedelta(days=365*150)
+def insertIfNew(data, year, valuetype,
+                existing_ids, new_ids, new_rows,
+                unknown_vals, date_format=DATE_FORMAT):
+    '''Loop over months in the data, add to new rows if new'''
+    last_day = [31,28,31,30,31,30,31,31,30,31,30,31]
+    for cntry in data:
+        for month, val in data[cntry].items():
+            date = datetime(year=year, month=month, day=last_day[month-1]).strftime(date_format)
+            UID = genUID(date, cntry, valuetype)
+            if UID not in existing_ids + new_ids:
+                new_ids.append(UID)
+                if month in unknown_vals[cntry]:
+                    logging.debug('Some stats confidental for {} in {}-{}'.format(cntry, year, month))
+                    values = [UID, date, cntry, valuetype, val, True]
+                else:
+                    logging.debug('All known stats released for {} in {}-{}'.format(cntry, year, month))
+                    values = [UID, date, cntry, valuetype, val, False]
+                new_rows.append(values)
 
-###
-## Carto code
-###
-
-def checkCreateTable(table, schema, id_field, time_field):
+def processNewData(existing_ids):
     '''
-    Get existing ids or create table
-    Return a list of existing ids in time order
+    Iterively fetch parse and post new data
     '''
-    if cartosql.tableExists(table):
-        logging.info('Table {} already exists'.format(table))
-    else:
-        logging.info('Creating Table {}'.format(table))
-        cartosql.createTable(table, schema)
-        cartosql.createIndex(table, id_field, unique=True)
-        if id_field != time_field:
-            cartosql.createIndex(table, time_field)
+    year = datetime.today().year
+    new_count = 1
+    new_ids = []
 
-def cleanOldRows(table, time_field, max_age, date_format='%Y-%m-%d %H:%M:%S'):
-    '''
-    Delete excess rows by age
-    Max_Age should be a datetime object or string
-    Return number of dropped rows
-    '''
-    num_expired = 0
-    if cartosql.tableExists(table):
-        if isinstance(max_age, datetime):
-            max_age = max_age.strftime(date_format)
-        elif isinstance(max_age, str):
-            logging.error('Max age must be expressed as a datetime.datetime object')
+    while year > MAXAGE and new_count:
+        # get and parse each page; stop when no new results or 200 pages
+        # 1. Fetch new data
+        logging.info("Fetching data for year {}".format(year))
+        r = requests.get(LATEST_URL.format(year=year))
+        data = r.json()
+        logging.debug('data: {}'.format(data))
 
+        # 2. Collect Totals
+        origins = defaultdict(lambda: defaultdict(int))
+        asylums = defaultdict(lambda: defaultdict(int))
+        unknown_vals_origins = defaultdict(list)
+        unknown_vals_asylums = defaultdict(list)
+
+        for obs in data:
+            try:
+                origins[obs['country_of_origin']][obs['month']] += obs['value']
+            except Exception as e:
+                logging.error("Error processing value {} for country of origin {} in {}-{}. Value set to -9999. Error: {}".format(obs['value'],obs['country_of_origin'],year,obs['month'],e))
+                unknown_vals_origins[obs['country_of_origin']].append(obs['month'])
+                origins[obs['country_of_origin']][obs['month']] += 0
+            try:
+                asylums[obs['country_of_asylum']][obs['month']] += obs['value']
+            except Exception as e:
+                logging.error("Error processing value {} for country of asylum {} in {}-{}. Value set to -9999. Error: {}".format(obs['value'],obs['country_of_asylum'],year,obs['month'],e))
+                unknown_vals_asylums[obs['country_of_asylum']].append(obs['month'])
+                asylums[obs['country_of_asylum']][obs['month']] += 0
+
+        # 3. Create Unique IDs, create new rows
+        new_rows = []
+
+        logging.debug('Create data about places of origin for year {}'.format(year))
+        insert_kwargs = {
+            'data':origins,'year':year,'valuetype':'country_of_origin',
+            'existing_ids':existing_ids,'new_ids':new_ids,'new_rows':new_rows,
+            'unknown_vals':unknown_vals_origins
+        }
+        insertIfNew(**insert_kwargs)
+
+        logging.debug('Create data about places of asylum for year {}'.format(year))
+        insert_kwargs.update(data=asylums,
+                             valuetype='country_of_asylum',
+                             unknown_vals=unknown_vals_asylums)
+        insertIfNew(**insert_kwargs)
+
+        # 4. Insert new rows
+        new_count = len(new_rows)
+        if new_count:
+            logging.info('Pushing {} new rows'.format(new_count))
+            cartosql.insertRows(CARTO_TABLE, CARTO_SCHEMA.keys(),
+                                CARTO_SCHEMA.values(), new_rows)
+        # Decrement year
+        year -= 1
+
+    num_new = len(new_ids)
+    return num_new
+
+
+##############################################################
+# General logic for Carto
+# should be the same for most tabular datasets
+##############################################################
+
+def createTableWithIndex(table, schema, id_field, time_field=''):
+    '''Get existing ids or create table'''
+    cartosql.createTable(table, schema)
+    cartosql.createIndex(table, id_field, unique=True)
+    if time_field:
+        cartosql.createIndex(table, time_field)
+
+
+def getIds(table, id_field):
+    '''get ids from table'''
+    r = cartosql.getFields(id_field, table, f='csv')
+    return r.text.split('\r\n')[1:-1]
+
+
+def deleteExcessRows(table, max_rows, time_field, max_age=''):
+    '''Delete excess rows by age or count'''
+    num_dropped = 0
+    if isinstance(max_age, datetime):
+        max_age = max_age.isoformat()
+
+    # 1. delete by age
+    if max_age:
         r = cartosql.deleteRows(table, "{} < '{}'".format(time_field, max_age))
-        num_expired = r.json()['total_rows']
-    else:
-        logging.error("{} table does not exist yet".format(table))
+        num_dropped = r.json()['total_rows']
 
-    return(num_expired)
-
-def deleteExcessRows(table, max_rows, time_field):
-    '''Delete rows to bring count down to max_rows'''
-    num_dropped=0
-    # 1. get sorted ids (old->new)
-    r = cartosql.getFields('cartodb_id', table, order='{} desc'.format(time_field),
+    # 2. get sorted ids (old->new)
+    r = cartosql.getFields('cartodb_id', table, order='{}'.format(time_field),
                            f='csv')
     ids = r.text.split('\r\n')[1:-1]
 
-    # 2. delete excess
+    # 3. delete excess
     if len(ids) > max_rows:
-        r = cartosql.deleteRowsByIDs(table, ids[max_rows:])
+        r = cartosql.deleteRowsByIDs(table, ids[:-max_rows])
         num_dropped += r.json()['total_rows']
     if num_dropped:
         logging.info('Dropped {} old rows from {}'.format(num_dropped, table))
 
-    return(num_dropped)
-
-###
-## Accessing remote data
-###
-
-def fetchDataFileName(SOURCE_URL):
-    """
-    Select the appropriate file from FTP to download data from
-    """
-    with urllib.request.urlopen(SOURCE_URL) as f:
-        ftp_contents = f.read().decode('utf-8').splitlines()
-
-    filename = ''
-    ALREADY_FOUND=False
-    for fileline in ftp_contents:
-        fileline = fileline.split()
-        logging.debug("Fileline as formatted on server: {}".format(fileline))
-        potential_filename = fileline[FILENAME_INDEX]
-
-        ###
-        ## Set conditions for finding correct file name for this FTP
-        ###
-
-        if (potential_filename.endswith(".txt") and ("V4" in potential_filename)):
-            if not ALREADY_FOUND:
-                filename = potential_filename
-                ALREADY_FOUND=True
-            else:
-                logging.warning("There are multiple filenames which match criteria, passing most recent")
-                filename = potential_filename
-
-    logging.info("Selected filename: {}".format(filename))
-    if not ALREADY_FOUND:
-        logging.warning("No valid filename found")
-
-    return(filename)
-
-def tryRetrieveData(SOURCE_URL, filename, TIMEOUT, ENCODING):
-    # Optional logic in case this request fails with "unable to decode" response
-    start = time.time()
-    elapsed = 0
-    resource_location = os.path.join(SOURCE_URL, filename)
-
-    while elapsed < TIMEOUT:
-        elapsed = time.time() - start
-        try:
-            with urllib.request.urlopen(resource_location) as f:
-                res_rows = f.read().decode(ENCODING).splitlines()
-                return(res_rows)
-        except:
-            logging.error("Unable to retrieve resource on this attempt.")
-            time.sleep(5)
-
-    logging.error("Unable to retrive resource before timeout of {} seconds".format(TIMEOUT))
-    if STRICT:
-        raise Exception("Unable to retrieve data from {}".format(resource_locations))
-    return([])
-
-
-
-def genUID(value_type, value_date):
-    return("_".join([str(value_type), str(value_date)]).replace(" ", "_"))
-
-def formatDateFunction(unformatteddate):
-    # DO STUFF
-    formatted_date = unformatteddate
-    return(formatted_date)
-
-
-
-
-def insertIfNew(newUID, newValues, existing_ids, new_data):
-    '''
-    For new UID, values, check whether this is already in our table
-    If not, add it
-    Return new_ids and new_data
-    '''
-    seen_ids = existing_ids + list(new_data.keys())
-    if newUID not in seen_ids:
-        new_data[newUID] = newValues
-        logging.debug("Adding {} data to table".format(newUID))
-    else:
-        logging.debug("{} data already in table".format(newUID))
-    return(new_data)
-
-def processData(SOURCE_URL, filename, existing_ids):
-    """
-    Inputs: FTP SOURCE_URL and filename where data is stored, existing_ids not to duplicate
-    Actions: Retrives data, dedupes and formats it, and adds to Carto table
-    Output: Number of new rows added
-    """
-    num_new = 0
-
-    ### Specific to each page/chunk in data processing
-
-    res_rows = tryRetrieveData(SOURCE_URL, filename, TIMEOUT, ENCODING)
-    new_data = {}
-    for row in res_rows:
-        ###
-        ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
-        ###
-        if not (row.startswith("HDR")):
-            row = row.split()
-            ###
-            ## CHANGE TO REFLECT CRITERIA FOR KEEPING ROWS FROM THIS DATA SOURCE
-            ###
-            if len(row)==len(CARTO_SCHEMA):
-                logging.debug("Processing row: {}".format(row))
-                # Pull data available in each line
-                VALUE_INDEX = 3
-                value = row[VALUE_INDEX]
-
-                # Pull times associated with those data
-                dttm_elems = {
-                    "year_ix":0,
-                    "month_ix":1,
-                    "day_ix":2
-                }
-
-                date = datetime(year=int(row[0]),
-                                month=int(row[1]),
-                                day=int(row[2])).strftime("%Y-%m-%d")
-
-                UID = genUID('value_type', date)
-                values = [UID, date, value, "value_type"]
-
-                new_data = insertIfNew(UID, values, existing_ids, new_data)
-            else:
-                logging.debug("Skipping row: {}".format(row))
-
-    if len(new_data):
-        num_new += len(new_data)
-        new_data = list(new_data.values())
-        cartosql.blockInsertRows(CARTO_TABLE, CARTO_SCHEMA.keys(), CARTO_SCHEMA.values(), new_data)
-
-    ### End page/chunk processing
-
-    return(num_new)
-
-###
-## Application code
-###
 
 def main():
-    logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+    logging.basicConfig(stream=sys.stderr, level=LOG_LEVEL)
+    logging.info('STARTING')
 
     if CLEAR_TABLE_FIRST:
-        logging.info("clearing table")
+        logging.info('Clearing table')
         cartosql.dropTable(CARTO_TABLE)
 
-    ### 1. Check if table exists, if not, create it
-    checkCreateTable(CARTO_TABLE, CARTO_SCHEMA, UID_FIELD, TIME_FIELD)
+    # 1. Check if table exists and create table
+    existing_ids = []
+    if cartosql.tableExists(CARTO_TABLE):
+        logging.info('Fetching existing ids')
+        existing_ids = getIds(CARTO_TABLE, UID_FIELD)
+    else:
+        logging.info('Table {} does not exist, creating'.format(CARTO_TABLE))
+        createTableWithIndex(CARTO_TABLE, CARTO_SCHEMA, UID_FIELD, TIME_FIELD)
 
-    ### 2. Delete old rows
-    num_expired = cleanOldRows(CARTO_TABLE, TIME_FIELD, MAX_AGE)
+    # 2. Iterively fetch, parse and post new data
+    num_new = processNewData(existing_ids)
 
-    ### 3. Retrieve existing data
-    r = cartosql.getFields(UID_FIELD, CARTO_TABLE, order='{} desc'.format(TIME_FIELD), f='csv')
-    existing_ids = r.text.split('\r\n')[1:-1]
-    num_existing = len(existing_ids)
+    existing_count = num_new + len(existing_ids)
+    logging.info('Total rows: {}, New: {}, Max: {}'.format(
+        existing_count, num_new, MAXROWS))
 
-    logging.debug("First 10 IDs already in table: {}".format(existing_ids[:10]))
+    # 3. Remove old observations
+    deleteExcessRows(CARTO_TABLE, MAXROWS, TIME_FIELD, datetime(year=MAXAGE, month=1, day=1))
 
-    ### 4. Fetch data from FTP, dedupe, process
-    filename = fetchDataFileName(SOURCE_URL)
-    num_new = processData(SOURCE_URL, filename, existing_ids)
-
-    ### 5. Delete data to get back to MAX_ROWS
-    num_deleted = deleteExcessRows(CARTO_TABLE, MAX_ROWS, TIME_FIELD)
-
-    ### 6. Notify results
-    logging.info('Expired rows: {}, Previous rows: {},  New rows: {}, Dropped rows: {}, Max: {}'.format(num_expired, num_existing, num_new, num_deleted, MAX_ROWS))
-    logging.info("SUCCESS")
+    logging.info('SUCCESS')

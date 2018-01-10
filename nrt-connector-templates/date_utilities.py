@@ -135,3 +135,21 @@ def retrieve_formatted_dates(nc, time_var_name, date_pattern=DATE_FORMAT):
     formatted_dates = [(ref_time + datetime.timedelta(days=int(time_disp))).strftime(date_pattern) for time_disp in time_displacements]
     logging.debug('Dates available: {}'.format(formatted_dates))
     return(formatted_dates)
+
+# https://stackoverflow.com/questions/6999726/how-can-i-convert-a-datetime-object-to-milliseconds-since-epoch-unix-time-in-p
+def format_time_for_gee(time_start, time_end, orig_date_pattern="%Y-%m-%d"):
+    """
+    Inputs: some times as strings, and a date_pattern they correspond to
+    Outputs: those times as UNIX time
+    """
+    # Set epoch to measure against
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    # Convert time_start and time_end to UTC... not clear what their original time zone was
+    time_start = time_start
+    time_start = time_start
+
+    # Convert the difference of time_start and time_end from the last epoch to milliseconds
+    time_start = (datetime.datetime.strptime(time_start, orig_date_pattern)-epoch).total_seconds()*1000.0
+    time_end = (datetime.datetime.strptime(time_end, orig_date_pattern)-epoch).total_seconds()*1000.0
+
+    return(time_start, time_end)
