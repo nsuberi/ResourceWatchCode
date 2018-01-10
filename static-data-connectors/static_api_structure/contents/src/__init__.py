@@ -7,20 +7,21 @@ from datetime import datetime
 import cartosql
 
 # Constants
-LATEST_URL = 'http://popdata.unhcr.org/api/stats/persons_of_concern_all_countries.json?year={year}'
+LATEST_URL = 'http://popdata.unhcr.org/api/stats/asylum_seekers_monthly.json?year={year}'
 
-CARTO_TABLE = 'soc_043_refugees_and_displaced_persons'
+CARTO_TABLE = 'soc_038_monthly_asylum_requests'
 CARTO_SCHEMA = OrderedDict([
     ('_UID', 'text'),
     ('date', 'timestamp'),
     ('country', 'text'),
     ('value_type', 'text'),
-    ('num_people', 'numeric')
+    ('num_people', 'numeric'),
+    ('some_stats_confidential', 'text')
 ])
 UID_FIELD = '_UID'
 TIME_FIELD = 'date'
 DATA_DIR = 'data'
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 DATE_FORMAT = '%Y-%m-%d'
 CLEAR_TABLE_FIRST = False
 
@@ -28,23 +29,27 @@ CLEAR_TABLE_FIRST = False
 MAXROWS = 1000000
 MAXAGE = datetime.today().year - 20
 
-def genUID(date, country, value_type):
+def genUID(date, country, valuetype):
     '''Generate unique id'''
-    return '{}_{}_{}'.format(country, date, value_type)
+    return '{}_{}_{}'.format(country, date, valuetype)
 
-def insertIfNew(country_data, existing_ids, new_ids, new_rows,
-                date_format=DATE_FORMAT):
+def insertIfNew(data, year, valuetype,
+                existing_ids, new_ids, new_rows,
+                unknown_vals, date_format=DATE_FORMAT):
     '''Loop over months in the data, add to new rows if new'''
-    year = country_data['year']
-    country = country_data['country_iso']
-    for origin_or_asylum in ['country_of_origin', 'country_of_asylum']:
-        for poc_type, val in country_data[origin_or_asylum].items():
-            date = datetime(year=year, month=12, day=31).strftime(date_format)
-            value_type = '{}_{}'.format(origin_or_asylum, poc_type)
-            UID = genUID(date, country, value_type)
+    last_day = [31,28,31,30,31,30,31,31,30,31,30,31]
+    for cntry in data:
+        for month, val in data[cntry].items():
+            date = datetime(year=year, month=month, day=last_day[month-1]).strftime(date_format)
+            UID = genUID(date, cntry, valuetype)
             if UID not in existing_ids + new_ids:
                 new_ids.append(UID)
-                values = [UID, date, country, value_type, val]
+                if month in unknown_vals[cntry]:
+                    logging.debug('Some stats confidental for {} in {}-{}'.format(cntry, year, month))
+                    values = [UID, date, cntry, valuetype, val, True]
+                else:
+                    logging.debug('All known stats released for {} in {}-{}'.format(cntry, year, month))
+                    values = [UID, date, cntry, valuetype, val, False]
                 new_rows.append(values)
 
 def processNewData(existing_ids):
@@ -60,21 +65,45 @@ def processNewData(existing_ids):
         # 1. Fetch new data
         logging.info("Fetching data for year {}".format(year))
         r = requests.get(LATEST_URL.format(year=year))
-        if 'InvalidContent' in r.text:
-            logging.warning('No data for year {}'.format(year))
-            new_count = 1
-            year -= 1
-            continue
-
         data = r.json()
         logging.debug('data: {}'.format(data))
 
+        # 2. Collect Totals
+        origins = defaultdict(lambda: defaultdict(int))
+        asylums = defaultdict(lambda: defaultdict(int))
+        unknown_vals_origins = defaultdict(list)
+        unknown_vals_asylums = defaultdict(list)
+
+        for obs in data:
+            try:
+                origins[obs['country_of_origin']][obs['month']] += obs['value']
+            except Exception as e:
+                logging.error("Error processing value {} for country of origin {} in {}-{}. Value set to -9999. Error: {}".format(obs['value'],obs['country_of_origin'],year,obs['month'],e))
+                unknown_vals_origins[obs['country_of_origin']].append(obs['month'])
+                origins[obs['country_of_origin']][obs['month']] += 0
+            try:
+                asylums[obs['country_of_asylum']][obs['month']] += obs['value']
+            except Exception as e:
+                logging.error("Error processing value {} for country of asylum {} in {}-{}. Value set to -9999. Error: {}".format(obs['value'],obs['country_of_asylum'],year,obs['month'],e))
+                unknown_vals_asylums[obs['country_of_asylum']].append(obs['month'])
+                asylums[obs['country_of_asylum']][obs['month']] += 0
+
         # 3. Create Unique IDs, create new rows
         new_rows = []
-        for country_data in data:
-            logging.debug('Data: {}'.format(country_data))
-            logging.debug('Processing data for {} in year {}'.format(country_data['name'], country_data['year']))
-            insertIfNew(country_data, existing_ids, new_ids, new_rows)
+
+        logging.debug('Create data about places of origin for year {}'.format(year))
+        insert_kwargs = {
+            'data':origins,'year':year,'valuetype':'country_of_origin',
+            'existing_ids':existing_ids,'new_ids':new_ids,'new_rows':new_rows,
+            'unknown_vals':unknown_vals_origins
+        }
+        insertIfNew(**insert_kwargs)
+
+        logging.debug('Create data about places of asylum for year {}'.format(year))
+        insert_kwargs.update(data=asylums,
+                             valuetype='country_of_asylum',
+                             unknown_vals=unknown_vals_asylums)
+        insertIfNew(**insert_kwargs)
 
         # 4. Insert new rows
         new_count = len(new_rows)
@@ -106,6 +135,7 @@ def getIds(table, id_field):
     '''get ids from table'''
     r = cartosql.getFields(id_field, table, f='csv')
     return r.text.split('\r\n')[1:-1]
+
 
 def deleteExcessRows(table, max_rows, time_field, max_age=''):
     '''Delete excess rows by age or count'''
