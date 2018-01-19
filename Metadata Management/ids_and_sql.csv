@@ -1,0 +1,195 @@
+WRI_ID,index,SQL
+foo.003,223b936e-06b8-4970-abd9-4f123904d95d,SELECT * FROM foo_003_fews2015_10
+cit.003,f84b559f-1eb1-43f2-871f-93fea669bf93,SELECT * FROM pm2_5_pm10_no2_so2_o3_co_bc_openaq WHERE parameter ='pm25' ORDER BY value asc
+cli.003,c8040a7a-a40f-48bd-b003-625c33beff5e,SELECT * FROM ssta
+for.002,e8f5b4e8-454e-488d-8b4a-b60ad02bce36,"SELECT the_geom_webmercator, orig_fname, orig_oid, data_type,round(st_area_sh::numeric,2) as st_area_sh, round(st_length_::numeric,2) as st_length_, date FROM imazon_sad where date > (CURRENT_DATE - interval '90 day')"
+for.005,8ab2606d-1b1c-4b71-ab29-c6e0a687e9fd,SELECT * FROM global_mangroves
+cli.002,9e7dc020-5a93-4df8-b81e-ee3e7bf32764,SELECT * FROM air_temo_anomalies
+,f2fe7588-6d1b-400e-b79c-0c86bf1273ea,"with a as (SELECT the_geom, country, year, values as value FROM urban_population_with_access_to_an_improved_water_source group by country, the_geom, year, values )select countries.the_geom,countries.the_geom_webmercator, a.country, avg(a.value) from countries, a where countries.admin=a.country group by a.country, countries.the_geom, countries.the_geom_webmercator"
+cli.021,ea67f436-473c-4977-bdf2-8aa0dabbaa6f,SELECT * FROM snow_cover
+foo.024,c48f0582-164f-4faa-97a2-7ad2e3111d3d,SELECT * FROM modis_1
+soc.065,134caa0a-21f7-451d-a7fe-30db31a424aa,"SELECT the_geom, the_geom_webmercator, iso, cartodb_id FROM gadm28_countries"
+bio.002,4458eb12-8572-45d1-bf07-d5a3ee097021,SELECT * FROM biodiversity_hotspots
+bio.004,3624554e-b240-4edb-9110-1f010642c3f3,SELECT * FROM table_14_001_wcmc008_coralreef2010_v1_3
+for.006,20cc5eca-8c63-4c41-8e8e-134dcf1e6d76,SELECT * FROM vnp14imgtdl_nrt_global_7d where (acq_date> (CURRENT_DATE - interval '7 day')) and frp>=100 ORDER BY frp asc
+soc.063,d8a45b34-4cc0-42f4-957d-e13b37e9182e,select * from anthro2_a2000
+,1ed6f37e-0a0c-47a6-830e-2b6d1496b045,SELECT * FROM potential_landslide_areas
+dis.003,a119aac3-81c7-4f8f-adb6-cca5449e9b6d,"SELECT the_geom_webmercator, st_y(the_geom) AS lat, st_x(the_geom) AS lon, title, description, link, pubdate FROM table_9089288329"
+bio.006,7d3465f8-5959-4531-aaf2-c9a8a03183b3,SELECT * FROM endemic_bird_areas
+bio.005,ad790c87-fe9e-4405-891d-de7c2ddfda79,SELECT * FROM coralreefhotspots
+,9e9a5c50-b825-4f12-838f-1650943c2be1,"SELECT the_geom, the_geom_webmercator, type FROM fao_aquastat_water_institutions"
+bio.030,20aead6e-fef9-41c7-92c8-ea00edcae077,SELECT * FROM tiger_conservation_landscapes
+,3f35ccf5-a104-4edf-b1ca-4e0bd423615b,SELECT * FROM mrds_trim
+wat.025,7a213f00-5be7-4f11-a859-3b9058dae2e6,SELECT * FROM chirps_2
+soc.014,3ac5a895-b8ab-4480-b7eb-0fbb452ea76f,select * from gfw_land_rights
+soc.007,21ac3cd2-9c19-47c7-ad18-4bcad118870f,SELECT * FROM nrpi_chi_2015
+wat.003,bbadb233-84ea-4ae1-893f-deba67f1d5de,SELECT * FROM global_grey_water_footprint_and_water_pollution_levels
+soc.016,8d84f6c6-8e7d-410e-a408-cbfb2555b35d,"SELECT the_geom_webmercator, year, time_precision, event_type, event_date, actor1, actor2, country, location, source, notes, fatalities FROM read"
+,42de3f98-ba1c-4572-a227-2e18d45239a5,"SELECT (select the_geom_webmercator from fiw2017 where iso = sfiv2015.scode ) as the_geom_webmercator, country, scode as iso3, sfi as total, row_number() over (order by sfi desc) as rank FROM sfiv2015 where year=2015 order by sfi desc"
+,5be16fea-5b1a-4daf-a9e9-9dc1f6ea6d4e,"with r as (SELECT basinid, value, label FROM water_risk_indicators  where (indicator='water_stress' and period = 'year' and type = 'absolute' and year = 2014 )) SELECT r.basinid, value, label, the_geom_webmercator from r inner join wri_subcatchements on r.basinid=wri_subcatchements.basinid"
+,59616fc8-6dcc-459b-b7fc-58f4ec9072e0,"select st_transform(the_geom_webmercator,32663) as the_geom_webmercator, value from fws where date in (SELECT date FROM fws order by date desc limit 1) and type = 'ML1'"
+,b257ef10-3ad3-49b8-a285-5180ae06daba,SELECT * FROM alliance_for_zero_extinction_sites_species_joi
+for.004,71b81fe0-23fc-4154-8601-ba987381594c,SELECT * FROM intact_forest_landscapes
+,b3059ff9-0054-4343-a7ac-d7a821d222cd,SELECT * FROM gdelt_project_data_filtered
+cli.025,d1fd9ac1-b99f-4f5f-b9d8-d3f1f818321a,SELECT * FROM sea_level_trends ORDER BY trend ASC
+bio.007,de452a4c-a55c-464d-9037-8c3e9fe48365,SELECT * FROM wdpa_protected_areas
+cli.013,c9c9cb2f-9655-4f40-8736-9b407ee43514,SELECT * FROM methane
+soc.064,098b33df-6871-4e53-a5ff-b56a7d989f9a,SELECT * FROM gadm28_adm2
+,415dd499-8385-4c23-bd18-8ac49803cf9e,SELECT * FROM land_water
+,be9c6c51-6e7c-41e8-b06f-86e5035f33d8,FROM public.cait_2_0_country_co2_emissions_energy_sub_sect_sum2011
+,9d03913c-050c-4080-b396-36724e557f94,SELECT * FROM soil_moisture
+for.022,a9e33aad-eece-4453-8279-31c4b4e0583f,SELECT * FROM modis_c6_global_7d ORDER BY brightness ASC
+,9d9b48d3-152d-48c3-8c2a-2957ddb601a1,SELECT * FROM cmap
+bio.003,16df8ada-87cc-4907-adce-a98bc4e91856,SELECT * FROM sp_richness
+,b3d076cc-b150-4ccb-a93e-eca05d9ac2bf,SELECT * FROM gadm28_adm2
+,ecafad5a-f619-4085-9113-b90252f492b6,SELECT * FROM pm2_5_pm10_no2_so2_o3_co_bc_openaq where parameter='o3'and unit='µg/m³'
+,9da79e74-0640-40da-b8ca-1d774e9e1678,
+,b7486735-591b-41ae-8bd3-53f73e600f6c,SELECT * FROM ene_012_percentage_national_population_access_electricity
+bio.018,36803484-c413-49a9-abe2-2286ee99b624,SELECT * FROM bio_018_marine_ecoregions
+wat.022,c8d3a605-3d50-46cf-a707-2aacbf6f7cb0,SELECT * FROM wat_022_global_groundwater_vulnerability_floods_droughts_edit
+bio.017,a07f1bed-ca16-4fbf-b14b-d3a0344cab74,SELECT * FROM bio_017_global_roadless_areas
+cit.015,f94db446-be63-4fb9-a6ea-7cc918a0d338,SELECT * FROM cit_015_urban_heat_island_effect
+cit.028,35ce2b98-adbb-4873-b334-d7b1cc542de7,SELECT * FROM cit_028_percent_urban_slums_edit WHERE yr_2014 IS NOT NULL
+,c92e76fc-378a-45c2-a095-316833c2bc47,SELECT * FROM ene_012_percentage_national_population_access_electricity
+soc.026,0be2ce12-79b3-434b-b557-d6ea92d787fe,SELECT * FROM soc_026_gender_gap_index_1 WHERE overall_index_score IS NOT NULL 
+,373e2b78-39e9-46d6-8b66-86ae047ffc93,SELECT * FROM foo_015_global_hunger_index_edit
+,d43772aa-9301-4401-939a-6cbd91efad6e,SELECT * FROM foo_015_global_hunger_index
+foo.015,4338471d-881a-475f-8bd9-60c4d48b8e12,SELECT * FROM foo_015_global_hunger_index
+,ac03dc53-d302-4db0-a7b2-62830d2d4c39,SELECT * FROM cit_022_road_traffic_deaths_by_country
+cit.022,6b670396-c52c-430c-b5bb-20693da03b60,SELECT * FROM cit_022_road_traffic_deaths_by_country
+wat.012,c9eadefd-4a06-4f3b-a2eb-3e3f45624c24,SELECT * FROM wat_012_city_water_intakes
+ene.005,80c31f61-6e12-47a0-865d-f33a48bfdebb,SELECT * FROM ene_005_geothermal_energy_investments
+com.002,51159bdb-4904-4101-a88e-ca7bd4f67cb0,SELECT * FROM com_002_airports_edit
+com.017,e0b94aef-4a3c-4fe3-8a58-7b713a4234a2,SELECT * FROM com_017_world_port_index
+cit.020,6d3163f5-4e08-4830-84f1-2c5d76570a82,SELECT * FROM cit_020_nat_pop_exposed_high_levels_pm_2_5_edit
+,4ef51f51-6c85-4485-b33a-0db0efcf6685,SELECT * FROM cli_029_vulnerability_to_climate_change
+cli.029,fa6443ff-eb95-4d0f-84d2-f0c91682efdf,SELECT * FROM cli_029_vulnerability_to_cc
+soc.020,f8d3e79c-c3d0-4f9a-9b68-9c5ad1f025e4,SELECT * FROM soc_020_gini WHERE yr_2012 IS NOT NULL
+soc.036,8671f536-1979-4b6f-a147-70152fcb44ed,SELECT * FROM soc_036_life_expectancy_at_birth WHERE yr_2015 IS NOT NULL 
+,f68f2900-f43b-4cad-9e73-5d981258845a,SELECT * FROM foo_040_fisheries_vul_climate
+,8a2c24f5-72ef-439f-ab09-4ce8ed87cc87,SELECT * FROM foo_040_fisheries_vul_climate
+ene.007,fd49c7ad-db12-4c1e-b74d-adef17160f50,SELECT * FROM ene_007_oil_pipelines
+,8f14a33e-5a61-47af-b26e-c1fc036932a5,SELECT * FROM cit_029_municipal_waste
+com.015,c18a38cd-94ff-48cd-818f-6ffb05992abb,SELECT * FROM com_015_recycling_rates
+,093b89c8-58e6-4b0c-bec1-d46170f7a253,SELECT * FROM vnp14imgtdl_nrt_global_7d
+cit.025,d38d0d5c-31b1-47f4-9d2e-d8fba4c7d083,SELECT * FROM cit_025_urban_population WHERE yr_2016 IS NOT NULL
+ene.020,1d6c6bcc-7787-4b9c-84bb-25a185c124dc,SELECT * FROM ene_020_clean_energy_investment_potential
+com.018,4fcdfd32-a02b-4068-8062-a0fee100aa75,SELECT * FROM com_018_undiscovered_oil_gas_resources
+bio.011,33bed1fb-9261-41bf-8b50-127a4d0c80c5,SELECT * FROM bio_011_freshwater_ecoregions
+,2370d1f5-7e01-4466-9e1e-48a7f1e10c95,SELECT * FROM cit_032_urban_population_percentage_edit
+bio.009,3c12072d-611b-413f-b314-4df0834523ab,SELECT * FROM bio_009_ecoregions_prioritized_conservation
+bio.021,050f4146-566c-4a6d-9aaa-b49ab66a3090,SELECT * FROM bio_021_terrestrial_ecoregions
+,95f3430e-9fdc-47bc-9963-2c78e42e5f88,SELECT * FROM soc_019_population_projections
+cli.007,3d2ce960-abda-4c9c-bd29-1929e9ca24c9,SELECT * FROM cli_007_greenhouse_gas_emissions_projections
+com.006,2e31a1f3-576b-46b4-84f0-3f0cc399f887,SELECT * FROM com_006_national_current_accounts_edit WHERE yr_2015 IS NOT NULL
+foo.019,8bc79a36-d77e-4ee3-b9bc-c77146cfc503,SELECT * FROM foo_019_child_malnutrition_edit WHERE overweight is not NULL
+soc.015,e8f53f73-d77c-485a-a2a6-1c47ea4aead9,SELECT*FROM soc_015_adult_literacy_rate WHERE yr_2015 IS NOT NULL
+soc.021,e7582657-9c16-4eb1-89e8-0211d94015c6,SELECT * FROM soc_021_environmental_performance_index
+soc.045,2cc29514-b97a-4103-92b1-c8c8e9268cd8,SELECT * FROM soc_045_social_institutions_gender_index WHERE political_voice_representation IS NOT NULL
+com.028,62c988a7-1e4d-418e-87bf-a743e24209e8,SELECT * FROM com_028_effect_of_ag_prices_on_commodity_prices
+ene.014,33a41780-fd0c-4989-90b8-2c76a127224c,SELECT * FROM ene_014_shale_basins
+ene.022,d639909f-bcf3-4875-b8c3-35f030b68ed3,SELECT * FROM ene_022_se4all_tracking_goals
+cit.013,5d269c36-6ccf-4620-838d-431f86c30f69,SELECT * FROM cit_013_reduction_life_expect_environment
+com.010,52c55378-0484-48c3-92fc-3ee94d21c716,SELECT * FROM com_010_gdp_ppp_usd WHERE yr_2016 IS NOT NULL
+com.011,bf5877eb-399a-4237-b510-b1d41049e3bc,SELECT * FROM com_011_3_maritime_boundaries_exclusive_economic_zones
+soc.002,d4ca3cc4-c162-469c-b341-b52284a73eaa,SELECT * FROM soc_002_gender_development_index WHERE gdi_value is not NULL
+for.014,c02da519-12f3-4c6a-86e7-648afac80b23,SELECT * FROM for_014_internationally_important_wetlands
+soc.001,0b9f0100-ce5b-430f-ad8f-3363efa05481,SELECT * FROM edi
+soc.035,e7780d53-ad80-45bd-a271-79615ee97a37,SELECT * FROM soc_035_land_deals WHERE number_of_deals IS NOT NULL 
+,07b92955-ebb7-4b2b-9650-374cf5a0a8a7,SELECT * FROM bio_031_soc_econ_reef
+soc.051,c17fab24-f71a-4c3e-bb87-6b753a944e6b,SELECT * FROM soc_051_international_water_event_database
+soc.004,bea122ce-1e4b-465d-8b7b-fa11aadd20f7,SELECT * FROM soc_004_human_development_index WHERE yr_1990 IS NOT NULL
+bio.031,894f43a8-ce8e-43a5-a4c7-fa80faa43d63,SELECT * FROM bio_031_soc_econ_reef
+soc.008,00abb46f-34e2-4bf7-be30-1fb0b1de022f,SELECT * FROM soc_008_gdp_per_capita_edit WHERE yr_2016 is not NULL
+bio.022,20c70a51-4ddf-4f6c-ad2c-1a6729b95fa4,SELECT * FROM bio_022_1_observations_coral_disease
+soc.022,773a16a7-3531-4b56-8253-babd15ad7f87,SELECT * FROM soc_022_forest_tenure WHERE government_administered_2013 IS NOT NULL 
+soc.062,5e69cfac-1f68-4864-a19a-3c1bdb180100,SELECT * FROM soc_062_internal_displacement_conflict_and_natural_disaster WHERE new_displacements_in_2016_disasters IS NOT NULL
+cit.032,7d9c0d09-e833-4a74-811b-0af78da9c731,SELECT * FROM cit_032_urban_population_percentage
+dis.001,63f34231-7369-4622-81f1-28a144d17835,"SELECT the_geom_webmercator, st_y(the_geom) AS lat, st_x(the_geom) AS lon, place, mag, url, dmin, to_timestamp(updated/1000) as updated, to_timestamp(time/1000) as time FROM table_2_5_month where mag > 4"
+cit.029,10337db6-8321-445e-a60b-28fc1e114f29,SELECT * FROM cit_029_municipal_waste
+soc.019,bab30f88-eb92-4aac-ba6d-fb7c61f4b7d3,SELECT * FROM soc_019_population_projections
+for.018,9ad91eb4-9217-41aa-a547-7b86f7c68deb,SELECT * FROM for_018_bonn_challenge_restoration_commitment
+com.019,5e3a3a9f-7380-47c0-ad84-2c193861e106,SELECT * FROM com_019_ecological_footprint_edit
+com.007,fe311144-8c0e-4440-b068-6efd057e0f6a,SELECT * FROM com_007_fdi_index
+ene.017,75061411-3afd-442f-b7d6-7607f97f639b,"SELECT *, CASE WHEN ghg_quantity_metric_tons_co2e IS NULL THEN -10000 ELSE ghg_quantity_metric_tons_co2e END AS ghg_fixed FROM ene_017_energy_facility_emissions_edit"
+bio.033,6b8442f5-4766-4444-94b4-d6676277fd80,SELECT * FROM bio_033_cold_water_corals_pts
+cit.001,5e156d22-7f84-4cd2-9724-c1a519a83e0a,SELECT * FROM ne_10m_populated_places_simple ORDER BY pop_max ASC
+foo.041,ccfb322a-20aa-4132-b58b-0f76acec8f5a,SELECT * FROM foo_041_agricultural_emissions
+foo.043,95b013a3-389a-4367-83b7-c9d68c28c406,SELECT * FROM foo_43_agriculture_value_added WHERE yr_2015 IS NOT NULL
+for.020,03bfb30e-829f-4299-bab9-b2be1b66b5d4,SELECT * FROM for_020_forest_employment_gdp_edit
+wat.005,1b97e47e-ca18-4e50-9aae-a2853acca3f0,SELECT * FROM wat_005_improved_water_access WHERE total_2015 IS NOT NULL 
+for.021,05b7c688-09ba-4f33-90ea-185a1039df43,SELECT * FROM for_021_certified_forest_edit
+dis.012,6f19982e-8c27-45ae-936d-2c9d5b2bd6a6,SELECT * FROM global_landslide_nowcast_3hr
+dis.009,e94f0e2d-2b5f-41ed-967f-d97e54dd81ea,SELECT * FROM tsevent
+soc.023,d3a6b89f-cf5c-40cf-b2b3-ac1c8315c648,SELECT * FROM soc_023_fragile_states_index
+wat.026,371e700e-bc9a-4526-af92-335d888de309,SELECT * FROM wat_026_sewage_facilities_edit
+soc.006,a89c95c7-0b82-4162-b9d8-cc0205e9f7ec,SELECT * FROM soc_006_multidimensional_poverty_index WHERE latest IS NOT NULL
+soc.003,d81c1054-1a51-4d71-8786-50c2c14ee801,SELECT * FROM soc_003_infant_mortality
+soc.070,23dec728-53a8-469a-91d4-8f706a12a51d,"SELECT *, trim(event_type) as event_type_2 FROM soc_016_conflict_and_protest_events WHERE year =2006 ORDER by event_type desc "
+soc.048,bb49f49f-c7e9-4c7f-bc6e-094f42a4a45a,SELECT * FROM soc_048_organized_violence_events WHERE year =2006 ORDER by best asc
+wat.001,d7c3d954-ac86-4d1a-bb6a-c8c432a94e26,SELECT * FROM wat_001_current_water_stress
+soc.047,b18320f6-2d8b-4776-8f60-55bce10f7957,"SELECT the_geom_webmercator, urlpubtimedate, name, urltone, url, mentionedthemes, mentionednames FROM lwl4qztl2l1ytm7t958svw"
+soc.069,25eebe25-aaf2-48fc-ab7b-186d7498f393,SELECT * FROM df_map_2ylag_1
+cli.022,995ec4fe-b3cc-4cf4-bd48-b89d4e3ea072,SELECT * FROM cli_022_populations_in_coastal_zones WHERE urban_population2010pct IS NOT NULL
+cli.008,3a46f6b4-0eec-49d4-bbfc-e2e8f64e6117,SELECT * FROM cli_008_greenhouse_gas_emissions_country_sector WHERE total_ghg_emissions_excluding_land_use_change_and_forestry_mtc IS NOT NULL 
+soc.040,37d04efc-0ab2-4499-a891-54dca1013c74,SELECT * FROM soc_040_improved_sanitation WHERE urban_2015 IS NOT NULL
+soc.039,b37048be-9b23-4458-a047-888956c69aa1,SELECT * FROM soc_039_out_of_school_rate_edit WHERE yr_2015 IS NOT NULL 
+ene.021,2c092793-aa3a-4520-959c-ad48165dcae4,SELECT * FROM ene_021_se4all_country_indicators WHERE yr_2010 IS NOT NULL
+soc.024,6c6e70e7-5a19-46f2-9d95-34789fd20adc,SELECT * FROM soc_024_gender_land_rights WHERE pct_female IS NOT NULL 
+,0a59f415-ee0b-4d19-96f7-c7304c152e1b,SELECT * FROM global_grid_prob_urban_expansion_2030_wgs84
+soc.017,eb06657f-8485-42ac-89ee-9665cf4f7c49,"SELECT the_geom_webmercator, year, time_precision, event_type, event_date, actor1, actor2, country, location, source, notes, fatalities FROM soc_016_conflict_and_protest_events WHERE year=2017 ORDER by event_type desc "
+,dcd1e9c7-1370-404e-8816-eaa51d4b1a39,SELECT the_raster_webmercator FROM renderdata_1
+ene.012,d446a52e-c4c1-4e74-ae30-3204620a0365,SELECT * FROM ene_012_electricity_access WHERE rural_2014 IS NOT NULL
+com.005,e2aa09eb-c82e-4977-b614-ef71da5936ce,SELECT * FROM com_005_cruise_ports ORDER BY tot_passen ASC 
+com.022,c2142922-84d9-4564-8216-a4867b9e48c5,SELECT * FROM gfw_mining
+com.024,6e05a9e8-ba07-4e6f-8337-31c5362d07fe,SELECT * FROM gfw_oil_palm
+com.025,83de627f-524b-4162-a10c-384dc3e8107a,SELECT * FROM gfw_wood_fiber
+com.026,f3fa9e56-78ea-4539-a0b8-6c0ffac6afc7,SELECT * FROM oil_palm_mills
+cli.037,8377daba-f607-4dca-8a07-e1c3486bdd46,SELECT * FROM hms_smoke20171019_prelim
+bio.001,5b5a21ac-0835-43fb-86b9-64b93d472e10,SELECT * FROM alliance_for_zero_extinction_sites_species_joi
+soc.005,a7067e9f-fe40-4338-85da-13a6071c76fe,SELECT * FROM soc_005_political_rights_civil_liberties_index
+for.016,e7c9251c-d39e-4b48-88c5-b2783bb7afdc,SELECT * FROM gfw_plantations
+foo.042,7a551dd8-b59c-4f59-9d50-c92cb61c5799,SELECT * FROM foo_042_agricultural_production_value
+com.004,7bcf2f48-8ebd-4900-a485-57a75f9f4e85,SELECT * FROM gfw_logging
+cli.017,e2971008-029f-441b-97cd-ee0555728182,SELECT * FROM cli_017_glacier_extent
+ene.001,e63bb157-4b98-4ecb-81d6-c1b15e79895a,SELECT * FROM ene_001_reservoirs
+com.008,e4bdc4c9-96a3-4f0b-8d8f-1742cabd8f80,SELECT * FROM com_008_wfp_alerts_price_spikes WHERE mp_year=2017
+cit.016,943f3702-421f-47a4-9b99-e2d5a9f544a7,SELECT * FROM cit_016_road_network
+soc.018,18d864e3-5f11-4ccb-8bd0-a03b46008e64,"SELECT *, CASE WHEN number_dead IS NULL THEN -9999 ELSE number_dead END AS fixed FROM soc_018_migrant_deaths"
+soc.025,11278cb6-b298-49a1-bf71-f1e269f40758,SELECT * FROM soc_025_gender_inequality_index WHERE yr_2015 IS NOT NULL
+soc.029,7793f46c-a48a-466f-a8ce-ca1a87b7aeed,SELECT * FROM soc_029_worldwide_governance_indicators
+soc.055,795a7ceb-ebc1-4479-95ad-76ea4d045ad3,SELECT * FROM soc_055_global_conflict_risk_index WHERE year=2014
+soc.066,4d7ce999-1e37-418f-b8a6-1816b29e901a,SELECT * FROM soc_066_population_below_poverty_line WHERE percentage_of_population_living_below_income_povety_line_ppp IS NOT NULL
+soc.043,e1c2a239-f8fc-460d-9185-ddf3043934b0,"SELECT  ungrouped.cartodb_id, ST_Transform(ungrouped.the_geom, 3857) as the_geom_webmercator, grouped.* FROM (SELECT country_territory_of_asylum_residence AS host, SUM(total_population) AS total FROM soc_043_refugees_internally_displaced_persons GROUP BY country_territory_of_asylum_residence) grouped INNER JOIN (SELECT DISTINCT ON (country_territory_of_asylum_residence) cartodb_id, the_geom, country_territory_of_asylum_residence AS host FROM soc_043_refugees_internally_displaced_persons) ungrouped ON grouped.host=ungrouped.host"
+wat.014,9eede25c-ec1c-4f62-b237-96c99f0c3a4c,SELECT * FROM wat_014_1_impaired_waters_usa_polygons
+,83999e4c-a95f-4b19-98e0-b5e492619223,"SELECT the_geom, the_geom_webmercator, iso, cartodb_id FROM gadm28_countries"
+,0f6c0ded-4f88-4902-b846-7bf57a9c3843,SELECT * FROM ene_024_energy_production_sources_access WHERE share_coal is not NULL
+ene.008,aaa374de-a5ce-4739-a772-7a72cabb60df,SELECT * FROM incidents 
+ene.028,c665f519-eef9-4f67-a8bf-7e3e6dc8bfcd,"SELECT wri.cartodb_id, ST_Transform(wri.the_geom, 3857) AS the_geom_webmercator, wri.name, data.country_name, data.yr_2014 FROM ene_028_access_clean_cooking_fuels data LEFT OUTER JOIN wri_countries_a wri ON data.country_code = wri.iso_a3  WHERE yr_2014 IS NOT NULL AND wri.name IS NOT NULL"
+wat.037,1b8f1592-2a92-4dd5-bd85-6d231c7d3229,SELECT * FROM wat_037_lakes wat_037_lakes
+bio.034,96ce9416-7a34-4c67-a21f-4f9b914d0d45,SELECT * FROM bio_034_percent_land_protected
+,45b6a92d-d8b1-49f1-80f6-27d962e7aae4,SELECT * FROM manoki_shp
+soc.071,20662342-dcdd-4a42-9f58-bcc80217de71,SELECT * FROM soc_071_world_languages WHERE world_lang IS NOT NULL
+wat.006,9948b8b8-2aaa-4146-be1e-91da5a1aaa88,SELECT * FROM wat_006_projected_water_stress
+cli.011,1a411ff1-7433-476a-a925-edb33a08bd64,"SELECT data.*, helper.label, helper.hex FROM cli_011_observed_and_projected_climate_shifts data LEFT OUTER JOIN cli_011_koppen_geiger helper ON data.gridcode = helper.value"
+,e66092f9-a6a9-4a08-a787-7920de3fc934,"SELECT the_geom_webmercator, year, time_precision, event_type, event_date, actor1, actor2, country, location, source, notes, fatalities FROM soc_016_conflict_and_protest_events WHERE year=2017 ORDER by event_type desc "
+com.009,c61c364b-1d68-4dd9-ae3d-76c2a0022280,"SELECT countries.cartodb_id, ST_Transform(countries.the_geom, 3857) as the_geom_webmercator, countries.short_name, sub.* FROM(SELECT isoalpha3, time, mfa4, SUM(value) AS value FROM com_009_1_material_flows_main WHERE flow = 'DE' AND time = 2017 AND mfa4 ILIKE 'Biomass' GROUP BY isoalpha3, time, mfa4 ORDER BY isoalpha3, time DESC) sub LEFT OUTER JOIN wri_countries_a countries ON sub.isoalpha3 = countries.adm0_a3"
+wat.007,c53a195f-d5f0-4acc-b1be-b773420a6606,SELECT * FROM wat_007_flood_risk
+wat.036,86fff033-dd27-41be-be64-2ec8983b3db1,SELECT * FROM wat_036_water_stress_country_ranking
+foo.006,2034a766-6e8a-416d-b8ab-9b7b3e3abb15,SELECT * FROM foo_006_effects_climate_change_food_production WHERE mza1f2020 is not null
+soc.067,1de2af1c-5e5e-4a33-b8f1-8c8f9d000e49,SELECT * FROM soc_067_climate_risk_index
+,815eaa09-d626-495e-91e2-523cb07de475,"(SELECT location, the_geom, the_geom_webmercator, city, cartodb_id FROM cit_003loc_air_quality) a LEFT JOIN (SELECT avg(value) AS pm25, count(value) AS obs, location AS key, max(utc) AS lastupdated FROM cit_003a_air_quality_pm25 WHERE value > 0 AND utc > (now()::timestamp - interval '1 days') GROUP BY key) b ON a.location = b.key"
+foo.040,91ff1359-6680-49bc-8002-20256e999993,SELECT * FROM foo_040_fisheries_vuln_climat
+,a86d906d-9862-4783-9e30-cdb68cd808b8,SELECT * FROM powerwatch_data_20180102 ORDER BY capacity_mw ASC
+,a76a0e14-5a4e-4839-8082-27db11b98f6f,SELECT * FROM electricity_per_capita WHERE electricity_heat_per_capita_tco2_per_capita IS NOT NULL 
+cli.018,90cace56-fad5-4f36-816f-605c9f5b48a2,SELECT * FROM cli_018_global_distribution_of_modelled_mangrove_biomass
+foo.013,db7a2b6b-726f-429b-8833-3f81be0ac286,"SELECT wri.cartodb_id, ST_Transform(wri.the_geom, 3857) AS the_geom_webmercator, data.country, data.energy_consumption_per_capita_2008_kcal_day FROM foo_013_food_production_and_consumption_2008_and_2050 data  LEFT OUTER JOIN wri_countries_a wri ON wri.name ILIKE TRIM(data.country)  WHERE data.energy_consumption_per_capita_2008_kcal_day IS NOT NULL AND data.Item = 'Bovine meat' AND wri.iso_a3 IS NOT NULL  UNION SELECT wri.cartodb_id, ST_Transform(wri.the_geom, 3857) AS the_geom_webmercator, data.country, data.energy_consumption_per_capita_2008_kcal_day FROM foo_013_food_production_and_consumption_2008_and_2050 data  INNER JOIN rw_aliasing_countries aliasing ON TRIM(data.country) ILIKE aliasing.alias  INNER JOIN wri_countries_a wri ON wri.iso_a3 = aliasing.iso WHERE data.Item = 'Bovine meat'"
+,4d199e44-6dec-4bdc-8b63-a33f2d3f59f5,SELECT * FROM ca_fire_test ORDER BY brightness ASC
+,e828ca6e-658e-422a-bfa7-8d6dbd20c286,SELECT * FROM california_landslide_jan4
+,ba4befc7-8816-4bcf-bee3-d4c965e5bf6c,SELECT * FROM ca_counties_tiger2016
+com.001,7fb1ebf5-398b-46ec-a915-32cee68b16e7,SELECT * FROM com_001_major_mineral_deposits
+,582a19c7-8cad-43c6-a70a-8156ebf9030b,SELECT * FROM ca_landslide_jan8
+soc.012,f48541d3-a622-4908-9400-5ef26257ac96,SELECT * FROM soc_12_water_institutions
+,8ee88f34-db15-4711-a76d-bf82dbfcffed,"SELECT * FROM foo_003_fews_net_food_insecurity where start_date = (SELECT distinct start_date from (SELECT start_date, dense_rank() over (order by start_date desc) as rn from foo_003_fews_net_food_insecurity where ifc_type = 'ML2') t where rn=2) and ifc_type = 'ML2'"
+com.029,c17296d6-8629-4769-900b-81d7a7037b1e,"SELECT helper.*, data.pciinbound, data.pcioutbound, data.degree, data.indegree, data.outdegree, data.closenessfrom, data.closenessto, data.betweennesslinks, data.betweennesstime, data.date FROM com_029_data_global_container_port_network data LEFT OUTER JOIN com_029_helper_global_container_port_network helper ON data.unlocode = helper.unlocode ORDER BY helper.cartodb_id ASC"
+,b0f859ce-f13b-462e-9063-ebc68ed88420,"SELECT * FROM foo_003_fews_net_food_insecurity where start_date = (SELECT distinct start_date from (SELECT start_date, dense_rank() over (order by start_date desc) as rn from foo_003_fews_net_food_insecurity where ifc_type = 'CS') t where rn=3) and ifc_type = 'CS'"
