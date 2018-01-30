@@ -32,8 +32,8 @@ COPY time.cron .
 COPY credentials.json .
 VOLUME /opt/$NAME/data
 
-RUN useradd $NAME
-RUN chown -R $NAME:$NAME .
+RUN groupadd -r $NAME && useradd -r -g $NAME $NAME
+RUN chown -R $NAME:$NAME /opt/$NAME/
 USER $NAME
 
 # Launch script

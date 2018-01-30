@@ -16,6 +16,10 @@ COPY contents/ .
 COPY time.cron .
 VOLUME ./data
 
+RUN groupadd -r $NAME && useradd -r -g $NAME $NAME
+RUN chown -R $NAME:$NAME /opt/$NAME/
+USER $NAME
+
 # install application libraries
 RUN pip install --upgrade pip && pip install -r requirements.txt
 

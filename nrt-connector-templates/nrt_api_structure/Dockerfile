@@ -19,8 +19,8 @@ WORKDIR /opt/$NAME/
 COPY contents/ .
 VOLUME ./data
 
-RUN adduser -D $NAME
-RUN chown $NAME:$NAME .
+RUN groupadd -r $NAME && useradd -r -g $NAME $NAME
+RUN chown -R $NAME:$NAME /opt/$NAME/
 USER $NAME
 
 CMD ["python", "main.py"]

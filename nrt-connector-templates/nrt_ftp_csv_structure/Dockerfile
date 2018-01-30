@@ -25,8 +25,8 @@ COPY time.cron .
 VOLUME ./data
 
 # Set user for container security
-RUN useradd $NAME
-RUN chown -R $NAME:$NAME .
+RUN groupadd -r $NAME && useradd -r -g $NAME $NAME
+RUN chown -R $NAME:$NAME /opt/$NAME/
 USER $NAME
 
 # Launch script
