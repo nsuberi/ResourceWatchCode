@@ -21,7 +21,7 @@ done
 gdalbuildvrt data/BlackMarble_2012.vrt data/BlackMarble_2012*
 
 # -b 1 only picks the first band... they are all three the same anyway
-gdal_translate -b 1 -co COMPRESS=LZW -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 -co tiled=Yes -of GTiff data/BlackMarble_2012.vrt data/BlackMarble_2012_edit.tif 
+gdal_translate -b 1 -co COMPRESS=LZW -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 -co tiled=Yes -of GTiff data/BlackMarble_2012.vrt data/BlackMarble_2012_edit.tif
 
 
 for paath in $(aws s3 ls $origin);
@@ -34,7 +34,7 @@ done
 gdalbuildvrt data/BlackMarble_2016.vrt data/BlackMarble_2016*
 
 # -b 1 only picks the first band... they are all three the same anyway
-gdal_translate -b 1 -co COMPRESS=LZW -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 -co tiled=Yes -of GTiff data/BlackMarble_2016.vrt data/BlackMarble_2016_edit.tif 
+gdal_translate -b 1 -co COMPRESS=LZW -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 -co tiled=Yes -of GTiff data/BlackMarble_2016.vrt data/BlackMarble_2016_edit.tif
 
 
 aws s3 cp data/BlackMarble_2012_edit.tif s3://wri-public-data/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif
@@ -59,14 +59,3 @@ earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights
 earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2012_no_nd gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2012_nathan.tif --force --bands nighttime_lights_2012_no_nd
 
 earthengine upload image --asset_id=users/resourcewatch/ene_023_nighttime_lights_2016_no_nd gs://resource-watch-public/resourcewatch/raster/ene_023_nighttime_lights/ene_023_nighttimelights_2016_nathan.tif --force --bands nighttime_lights_2016_no_nd
-
-
-
-
-
-
-
-
-
-
-

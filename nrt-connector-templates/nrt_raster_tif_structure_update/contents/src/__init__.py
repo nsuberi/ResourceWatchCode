@@ -22,6 +22,7 @@ VERSION = '3.0'
 SOURCE_URL = 'ftp://sidads.colorado.edu/DATASETS/NOAA/G02135/{north_or_south}/monthly/geotiff/{month}/{target_file}'
 SOURCE_FILENAME = '{n_or_s}_{date}_extent_v{version}.tif'
 ASSET_NAME = 'cli_005_{arctic_or_antarctic}_sea_ice_{date}'
+DATE_FORMAT = '%Y%m'
 
 # Read from data
 NODATA_VALUE = 0
@@ -35,10 +36,12 @@ EE_COLLECTION = 'cli_005_polar_sea_ice_extent'
 # Times two because of North / South parallels
 MAX_DATES = 5
 MAX_ASSETS = MAX_DATES*2
-DATE_FORMAT = '%Y%m'
 TIMESTEP = {'days': 30}
 
 # environmental variables
+with open('gcsPrivateKey.json','w') as f:
+    f.write(os.getenv('GCS_JSON'))
+
 GEE_SERVICE_ACCOUNT = os.environ.get("GEE_SERVICE_ACCOUNT")
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get(
     "GOOGLE_APPLICATION_CREDENTIALS")
