@@ -18,6 +18,9 @@ import logging
 import sys
 import json
 import pickle
+import base64
+
+import requests as req
 
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(stream=sys.stderr, level=LOG_LEVEL)
@@ -26,7 +29,23 @@ SALIENCE_THRESHOLD = .001
 DRAW_GRAPHS = False
 PROCESS_DATA = False
 CREATE_LINKS = False
-GENERATE_COOCCURENCE_GRAPHS = True
+GENERATE_COOCCURENCE_GRAPHS_NX = False
+LOAD_NEO4J = True
+REQUIRE_NEO4J_AUTH = False
+
+####
+## Neo4j Endpoints
+####
+NEO4J_API='http://localhost:7474/'
+NEO4J_AUTH = NEO4J_API+'user/neo4j'
+
+NEO4J_NODES = NEO4J_API+'db/data/node'
+NEO4J_NODE = NEO4J_API+'db/data/node/{}'
+NEO4J_CREATE_NODE = NEO4J_API+'db/data/node'
+
+NEO4J_LINKS = NEO4J_API+'db/data/relationships'
+NEO4J_CREATE_LINK = NEO4J_API+'db/data/{node_id}/relationships'
+
 
 ####
 ## Preparing Data
@@ -101,6 +120,7 @@ def run_nlp_algorithm(documents):
 
     return nlp_results
 
+
 ####
 ## Statistical Modeling of ML results
 ####
@@ -146,6 +166,71 @@ def generate_corpus_links(conditional_probabilities, corpus):
 
     logging.info('Corpus links: {}'.format(corpus_links))
     return corpus_links
+
+
+####
+## Creating a Graph Using Neo4j
+####
+
+def neo4j_authenticate(_user='neo4j', _pass='neo4j'):
+    res = req.get(NEO4J_AUTH, headers = createHeaders(_user, _pass))
+    return res
+
+def createHeaders(_user='neo4j', _pass='neo4j'):
+    pass_string = '{}:{}'.format(_user, _pass)
+    base64userpass = base64.b64encode(pass_string.encode('utf-8'))
+    return {
+        'Content-Type':'application/json',
+        'Authorization':'Basic {}'.format(base64userpass)
+    }
+
+def create_nodes(nouns, nodes={}, _user='neo4j', _pass='neo4j'):
+    for noun in nouns:
+        ## Hardcode use-case
+        node_info = {
+            'noun':noun
+        }
+        res = req.post(NEO4J_CREATE_NODE,
+                        data=json.dumps(node_info),
+                        headers=createHeaders(_user, _pass)).json()
+
+        nodes[noun] = res
+    return nodes
+
+def create_relationship(nodeA, nodeB, _type, _data, _user='neo4j', _pass='neo4j'):
+    relationship_info = {
+        {
+          "to" : NEO4J_NODE.format(nodeB),
+          "type" : _type,
+          "data" : _data
+        }
+    }
+    res = req.post(NEO4J_CREATE_LINK.format(nodeA),
+                data=json.dumps(relationship_info),
+                headers=createHeaders(_user, _pass)).json()
+    return res
+
+def create_graph(corpus, corpus_links):
+    num_nodes = len(corpus)
+    nodes = create_nodes(corpus)
+
+    # Create Links
+    for ix_x in range(num_nodes):
+        logging.info('NEO4J: NOUN GRAPH: Making connections for node {}/{}: {}'.format(ix_x, num_nodes, corpus[ix_x]))
+        for ix_y in range(ix_x):
+            nounA = corpus[ix_x]
+            nounB = corpus[ix_y]
+            nodeA = nodes[nounA]['metadata']['id']
+            nodeB = nodes[nounB]['metadata']['id']
+            evidence = create_relationship(nodeA, nodeB, 'coocurrence_probability', {'weight':corpus_links[ix_x, ix_y]})
+            logging.debug(evidence)
+
+    return nodes
+
+
+####
+## Creating a Graph Using NetworkX
+####
 
 def generate_noun_graph(corpus_links, corpus):
     # For networkx tutorial:
@@ -250,16 +335,9 @@ if CREATE_LINKS:
 
     with open('data/nlp_results.txt', 'r') as f:
         nlp_results = json.loads(f.read())
-        # temporary
-        for cntry, entities in nlp_results.items():
-            nlp_results[cntry] = [word.lower() for word in entities]
 
     with open('data/entities.txt', 'r') as f:
         corpus = json.loads(f.read())
-        # temporary
-        corpus = [word.lower() for word in corpus]
-        corpus = list(set(corpus))
-        corpus.sort()
 
     logging.info('Conditional Probabilities:')
     conditional_probabilities = generate_conditional_probabilities(nlp_results, corpus)
@@ -272,7 +350,7 @@ if CREATE_LINKS:
     pickle.dump(corpus_links, open('data/corpus_links.pkl', 'wb'))
 
 
-if GENERATE_COOCCURENCE_GRAPHS:
+if GENERATE_COOCCURENCE_GRAPHS_NX:
 
     ####
     ## Create cooccurence graphs
@@ -291,6 +369,22 @@ if GENERATE_COOCCURENCE_GRAPHS:
     mstp = generate_minimum_spanning_tree_plus(noun_graph, corpus_links, cutoff, corpus)
     nx.write_gpickle(mstp, 'minimal_spanning_tree_cutoff_{}.pkl'.format(cutoff))
 
+
+if LOAD_NEO4J:
+
+    if REQUIRE_NEO4J_AUTH:
+        logging.info("AUTHENTICATING TO NEO4J")
+        neo4j_authenticate()
+
+    logging.info("LOADING DATA")
+    corpus_links = pickle.load(open('data/corpus_links.pkl', 'rb'))
+
+    with open('data/entities.txt', 'r') as f:
+        corpus = json.loads(f.read())
+
+    logging.info("CREATING GRAPH")
+    nodes = create_graph(corpus, corpus_links)
+    logging.debug(nodes)
 
 # # Extensions
 # * Extract neighborhoods from pruned graph

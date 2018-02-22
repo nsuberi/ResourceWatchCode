@@ -14,7 +14,8 @@ RUN pip install --upgrade pip && pip install \
     bs4 \
     lxml \
     networkx \
-    numpy
+    numpy \
+    requests
 
 # copy the application folder inside the container
 RUN mkdir -p /opt/$NAME/data

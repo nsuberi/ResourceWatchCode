@@ -6,15 +6,21 @@ from_folder="/Users/nathansuberi/Documents/GitHub/ResourceWatchCode/static-data-
 from_folder="/Users/nathansuberi/Documents/GitHub/ResourceWatchCode/nrt-connector-templates"
 exclude="/Users/nathansuberi/Documents/GitHub/ResourceWatchCode/nrt-connector-templates/nrt_raster_tif_structure"
 
-from_folder="/Users/nathansuberi/Documents/GitHub/nrt-scripts/"
+from_folder="/Users/nathansuberi/Documents/GitHub/Analytic Tools/"
 env_file="/Users/nathansuberi/Desktop/WRI_Programming/cred/.env"
 credentials_file="/Users/nathansuberi/Desktop/WRI_Programming/cred/service_account_credentials.json"
-nlp_creds="/Users/nathansuberi/Desktop/WRI_Programming/cred/.climatewatch.env"
 netrc_file = "/Users/nathansuberi/Desktop/WRI_Programming/cred/.netrc"
 find $from_folder -type d -maxdepth 1 -not -path "*/.ipy*" -not -path $from_folder | while read dname; do
   echo $dname
   cp $credentials_file $dname/credentials.json
   ln -s $env_file $dname/.env
+  ln -s $nlp_creds $dname/.climatewatch.env
+done
+
+from_folder="/Users/nathansuberi/Documents/GitHub/Analytic Tools/"
+nlp_creds="/Users/nathansuberi/Desktop/WRI_Programming/cred/.climatewatch.env"
+find $from_folder -type d -maxdepth 1 -not -path "*/.ipy*" -not -path $from_folder | while read dname; do
+  echo $dname
   ln -s $nlp_creds $dname/.climatewatch.env
 done
 
