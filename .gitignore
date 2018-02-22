@@ -3,10 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# raster files
+# data files
 *.tif
 *.nc
 *.xml
+*.png
+*.PNG
+*.pkl
 
 # C extensions
 *.so
