@@ -8,6 +8,7 @@ RUN apt-get update
 RUN pip install -U pip
 
 # install application libraries
+
 RUN pip install -e git+https://github.com/fgassert/cartosql.py.git#egg=cartosql
 RUN pip install --upgrade pip && pip install \
     google-cloud-language \
@@ -16,6 +17,10 @@ RUN pip install --upgrade pip && pip install \
     networkx \
     numpy \
     requests
+
+RUN pip install pyOpenSSL
+RUN apt-get install -y \
+    openssl
 
 # copy the application folder inside the container
 RUN mkdir -p /opt/$NAME/data

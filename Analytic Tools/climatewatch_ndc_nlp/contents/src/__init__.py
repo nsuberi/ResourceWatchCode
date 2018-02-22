@@ -25,7 +25,10 @@ import requests as req
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(stream=sys.stderr, level=LOG_LEVEL)
 
-SALIENCE_THRESHOLD = .001
+SALIENCE_THRESHOLD = .01
+MINIMUM_COOCCURENCE = .25
+MINIMUM_FREQUENCY = 0
+
 DRAW_GRAPHS = False
 PROCESS_DATA = False
 CREATE_LINKS = False
@@ -39,13 +42,12 @@ REQUIRE_NEO4J_AUTH = False
 NEO4J_API='http://localhost:7474/'
 NEO4J_AUTH = NEO4J_API+'user/neo4j'
 
-NEO4J_NODES = NEO4J_API+'db/data/node'
-NEO4J_NODE = NEO4J_API+'db/data/node/{}'
+NEO4J_NODE = NEO4J_API+'db/data/node/{node_id}'
 NEO4J_CREATE_NODE = NEO4J_API+'db/data/node'
+NEO4J_LABEL_NODE = NEO4J_API+'db/data/node/{node_id}/labels'
 
 NEO4J_LINKS = NEO4J_API+'db/data/relationships'
-NEO4J_CREATE_LINK = NEO4J_API+'db/data/{node_id}/relationships'
-
+NEO4J_CREATE_LINK = NEO4J_API+'db/data/node/{node_id}/relationships'
 
 ####
 ## Preparing Data
@@ -184,48 +186,106 @@ def createHeaders(_user='neo4j', _pass='neo4j'):
         'Authorization':'Basic {}'.format(base64userpass)
     }
 
-def create_nodes(nouns, nodes={}, _user='neo4j', _pass='neo4j'):
+def create_noun_nodes(nouns, nodes={}, _user='neo4j', _pass='neo4j'):
     for noun in nouns:
-        ## Hardcode use-case
-        node_info = {
-            'noun':noun
-        }
-        res = req.post(NEO4J_CREATE_NODE,
-                        data=json.dumps(node_info),
-                        headers=createHeaders(_user, _pass)).json()
+        if noun not in nodes:
+            # Create node
+            logging.info('Creating node for {}'.format(noun))
+            node_props = {
+                'noun':noun
+            }
+            node_info = req.post(NEO4J_CREATE_NODE,
+                            data=json.dumps(node_props),
+                            headers=createHeaders(_user, _pass)).json()
 
-        nodes[noun] = res
+            # Add label
+            node_id = node_info['metadata']['id']
+            req.post(NEO4J_LABEL_NODE.format(node_id=node_id),
+                    data=json.dumps('Noun'),
+                    headers=createHeaders(_user, _pass))
+
+            nodes[noun] = node_info
+    return nodes
+
+def create_country_nodes(countries, nodes={}, _user='neo4j', _pass='neo4j'):
+    for country in countries:
+        if country not in nodes:
+            logging.info('Creating node for {}'.format(country))
+            node_props = {
+                'country':country
+            }
+            node_info = req.post(NEO4J_CREATE_NODE,
+                            data=json.dumps(node_props),
+                            headers=createHeaders(_user, _pass)).json()
+
+            # Add label
+            node_id = node_info['metadata']['id']
+            req.post(NEO4J_LABEL_NODE.format(node_id=node_id),
+                    data=json.dumps('Country'),
+                    headers=createHeaders(_user, _pass))
+
+            nodes[country] = node_info
     return nodes
 
 def create_relationship(nodeA, nodeB, _type, _data, _user='neo4j', _pass='neo4j'):
     relationship_info = {
-        {
-          "to" : NEO4J_NODE.format(nodeB),
+          "to" : NEO4J_NODE.format(node_id=nodeB),
           "type" : _type,
           "data" : _data
-        }
     }
-    res = req.post(NEO4J_CREATE_LINK.format(nodeA),
+    res = req.post(NEO4J_CREATE_LINK.format(node_id=nodeA),
                 data=json.dumps(relationship_info),
-                headers=createHeaders(_user, _pass)).json()
+                headers=createHeaders(_user, _pass))
     return res
 
-def create_graph(corpus, corpus_links):
-    num_nodes = len(corpus)
-    nodes = create_nodes(corpus)
+def create_graph(nlp_results, corpus, corpus_links):
+    countries = list(nlp_results.keys())
+    country_nodes = create_country_nodes(countries)
+    logging.debug(countries)
+    logging.debug(country_nodes[countries[0]])
 
-    # Create Links
-    for ix_x in range(num_nodes):
-        logging.info('NEO4J: NOUN GRAPH: Making connections for node {}/{}: {}'.format(ix_x, num_nodes, corpus[ix_x]))
+    num_noun_nodes = len(corpus)
+    noun_nodes = create_noun_nodes(corpus)
+    nouns = list(noun_nodes.keys())
+    logging.debug(nouns)
+    logging.debug(noun_nodes[nouns[0]])
+
+    # Create Country-Noun Links
+    for country, entities in nlp_results.items():
+        for entity in entities:
+            nodeA = country_nodes[country]['metadata']['id']
+            nodeB = noun_nodes[entity]['metadata']['id']
+            # TO DO: update ML step to count frequency of mentions
+            # of each entity in a country NDC
+            frequency = 1
+            if frequency > MINIMUM_FREQUENCY:
+                link_data = {
+                    'frequency':frequency
+                }
+                evidence = create_relationship(nodeA, nodeB, 'mention', link_data)
+                logging.debug(evidence.text)
+
+    # Create Noun-Noun Links
+    for ix_x in range(num_noun_nodes):
+        logging.info('NEO4J: NOUN GRAPH: Making connections for node {}/{}: {}'.format(ix_x, num_noun_nodes, corpus[ix_x]))
         for ix_y in range(ix_x):
             nounA = corpus[ix_x]
             nounB = corpus[ix_y]
-            nodeA = nodes[nounA]['metadata']['id']
-            nodeB = nodes[nounB]['metadata']['id']
-            evidence = create_relationship(nodeA, nodeB, 'coocurrence_probability', {'weight':corpus_links[ix_x, ix_y]})
-            logging.debug(evidence)
+            nodeA = noun_nodes[nounA]['metadata']['id']
+            nodeB = noun_nodes[nounB]['metadata']['id']
+            link = corpus_links[ix_x, ix_y]
+            if link > MINIMUM_COOCCURENCE:
+                link_data = {
+                    'probability':link
+                }
+                evidence = create_relationship(nodeA, nodeB, 'coocurrence', link_data)
+                logging.debug(evidence.text)
 
-    return nodes
+    return country_nodes, noun_nodes
+
+
+
+
 
 
 ####
@@ -382,11 +442,32 @@ if LOAD_NEO4J:
     with open('data/entities.txt', 'r') as f:
         corpus = json.loads(f.read())
 
+    with open('data/nlp_results.txt', 'r') as f:
+        nlp_results = json.loads(f.read())
+
+    # TO DO: Fetch all existing nodes to not uploda them twice
+    #existing_nodes =
+
     logging.info("CREATING GRAPH")
-    nodes = create_graph(corpus, corpus_links)
-    logging.debug(nodes)
+    country_nodes, noun_nodes = create_graph(nlp_results, corpus, corpus_links)
+
+    logging.info("SAVING NODES")
+    with open('data/country_nodes.txt', 'r') as f:
+        f.write(json.dumps(country_nodes))
+
+    with open('data/noun_nodes.txt', 'r') as f:
+        f.write(json.dumps(noun_nodes))
+
 
 # # Extensions
 # * Extract neighborhoods from pruned graph
 # * Differentiate between proper and common nouns - highlight proper nouns to discuss the issues they care about
 # * Incorporate sentiment in some measure
+
+
+####
+## CYPHER QUERIES
+####
+
+# MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
+## TO DO: how to only show connections over a certain probability?
