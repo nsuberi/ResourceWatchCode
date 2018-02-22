@@ -8,7 +8,7 @@ docker run -id \
     --volume=$HOME/neo4j/data:/data \
     --volume=$HOME/neo4j/logs:/logs \
     --env=NEO4J_AUTH=none \
-    neo4j:3.0
+    neo4j:3.3.3
 
 docker build -t $NAME --build-arg NAME=$NAME .
 docker run \
