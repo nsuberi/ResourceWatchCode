@@ -30,8 +30,8 @@ MINIMUM_COOCCURENCE = .25
 MINIMUM_FREQUENCY = 0
 
 DRAW_GRAPHS = False
-PROCESS_DATA = True
-CREATE_LINKS = True
+PROCESS_DATA = False
+CREATE_LINKS = False
 LOAD_NEO4J = True
 REQUIRE_NEO4J_AUTH = False
 
@@ -102,8 +102,6 @@ def only_letters(string):
 def is_salient(entity):
     return entity.salience > SALIENCE_THRESHOLD
 
-
-
 # Structure of response: https://cloud.google.com/natural-language/docs/reference/rpc/google.cloud.language.v1#analyzeentitiesresponse
 # Entities is a protocol buffer, not a list
 def run_nlp_algorithm(documents):
@@ -124,6 +122,7 @@ def run_nlp_algorithm(documents):
         doc_nlp_result = client.analyze_entity_sentiment(document, encoding)
         lower_case_names = map(lambda entity: entity.name.lower(), doc_nlp_result.entities)
         filter1 = filter(only_letters , lower_case_names)
+        # filter2 = filter(some_other_func, filter1)
         filtered_lower_case_names = filter(is_salient , filter1)
 
         logging.info('salient entities in doc: {}'.format(filtered_lower_case_names))
