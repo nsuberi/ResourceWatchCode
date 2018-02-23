@@ -9,7 +9,6 @@ from google.cloud.language import enums
 from google.cloud.language import types
 
 import numpy as np
-import networkx as nx
 
 import subprocess
 import glob
@@ -19,6 +18,7 @@ import sys
 import json
 import pickle
 import base64
+import re
 
 import requests as req
 
@@ -30,9 +30,8 @@ MINIMUM_COOCCURENCE = .25
 MINIMUM_FREQUENCY = 0
 
 DRAW_GRAPHS = False
-PROCESS_DATA = False
-CREATE_LINKS = False
-GENERATE_COOCCURENCE_GRAPHS_NX = False
+PROCESS_DATA = True
+CREATE_LINKS = True
 LOAD_NEO4J = True
 REQUIRE_NEO4J_AUTH = False
 
@@ -93,10 +92,24 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'gcsPrivateKey.json'
 # Instantiate a client
 client = language.LanguageServiceClient()
 
+###
+## FILTERS
+###
+def only_letters(string):
+    prog = re.compile('[A-Z]+')
+    return prog.match(string)
+
+def is_salient(entity):
+    return entity.salience > SALIENCE_THRESHOLD
+
+
+
 # Structure of response: https://cloud.google.com/natural-language/docs/reference/rpc/google.cloud.language.v1#analyzeentitiesresponse
 # Entities is a protocol buffer, not a list
 def run_nlp_algorithm(documents):
+
     nlp_results = {}
+
     for cntry, doc in documents.items():
         logging.info("Working on NDC for {}".format(cntry))
 
@@ -107,18 +120,14 @@ def run_nlp_algorithm(documents):
                 type=enums.Document.Type.PLAIN_TEXT)
         encoding = enums.EncodingType.UTF32
 
+        # NLP API
         doc_nlp_result = client.analyze_entity_sentiment(document, encoding)
+        lower_case_names = map(lambda entity: entity.name.lower(), doc_nlp_result.entities)
+        filter1 = filter(only_letters , lower_case_names)
+        filtered_lower_case_names = filter(is_salient , filter1)
 
-        salient_entities = []
-        for entity in doc_nlp_result.entities:
-            # ONLY INCLUDE SALIENT ENTITIES, lowercase
-            if entity.salience > SALIENCE_THRESHOLD:
-                salient_entities.append(entity.name.lower())
-            #doc_entities.append([entity.name, entity.salience])
-
-        salient_entities = list(set(salient_entities))
-        logging.info('salient entities in doc: {}'.format(salient_entities))
-        nlp_results[cntry] = salient_entities
+        logging.info('salient entities in doc: {}'.format(filtered_lower_case_names))
+        nlp_results[cntry] = filtered_lower_case_names
 
     return nlp_results
 
@@ -289,67 +298,6 @@ def create_graph(nlp_results, corpus, corpus_links):
 
 
 ####
-## Creating a Graph Using NetworkX
-####
-
-def generate_noun_graph(corpus_links, corpus):
-    # For networkx tutorial:
-    # https://networkx.github.io/documentation/stable/tutorial.html
-
-    # Instantiate Graph
-    noun_graph = nx.Graph()
-
-    # Create Nodes
-    num_nodes = len(corpus)
-    noun_graph.add_nodes_from(corpus)
-
-    # Create Links
-    edge_list = []
-    for ix_x in range(num_nodes):
-        logging.info('NOUN GRAPH: Working on node {}/{}: {}'.format(ix_x, num_nodes, corpus[ix_x]))
-        for ix_y in range(ix_x):
-            if ix_x > 3667:
-                logging.info('PROBLEM NODE {}/{}: {}'.format(ix_y, num_nodes, corpus[ix_y]))
-            node_x = corpus[ix_x]
-            node_y = corpus[ix_y]
-            edge_list.append((node_x, node_y, {'weight':corpus_links[ix_x, ix_y]}))
-    noun_graph.add_edges_from(edge_list)
-
-    # Draw graph
-    if DRAW_GRAPHS:
-        nx.draw_networkx(noun_graph, pos=nx.spring_layout(noun_graph))
-        plt.draw()
-
-    return noun_graph
-
-def generate_minimum_spanning_tree_plus(noun_graph, corpus_links, cutoff, corpus):
-    # Generate minimum spanning tree
-    mst = nx.minimum_spanning_tree(noun_graph)
-    num_nouns = len(corpus)
-    # Enforce that all links with weight above the cutoff are included
-    edge_list = []
-    for ix_x in range(corpus_links.shape[0]):
-        logging.info('MINIMUM SPANNING TREE: Working on noun {}/{}: {}'.format(ix_x, num_nouns, corpus[ix_x]))
-        for ix_y in range(ix_x):
-            link_weight = corpus_links[ix_x, ix_y]
-            if link_weight > cutoff:
-                node_x = corpus[ix_x]
-                node_y = corpus[ix_y]
-                edge_list.append((node_x, node_y, {'weight':link_weight}))
-    mst.add_edges_from(edge_list)
-
-    # Draw graph
-    if DRAW_GRAPHS:
-        nx.draw_networkx(mst, pos=nx.spring_layout(mst))
-        plt.draw()
-
-    return mst
-
-
-
-
-
-####
 ## WORKFLOW
 ####
 
@@ -410,25 +358,6 @@ if CREATE_LINKS:
     pickle.dump(corpus_links, open('data/corpus_links.pkl', 'wb'))
 
 
-if GENERATE_COOCCURENCE_GRAPHS_NX:
-
-    ####
-    ## Create cooccurence graphs
-    ####
-    corpus_links = pickle.load(open('data/corpus_links.pkl', 'rb'))
-
-    with open('data/entities.txt', 'r') as f:
-        corpus = json.loads(f.read())
-
-    # Full noun_graph
-    noun_graph = generate_noun_graph(corpus_links, corpus)
-    nx.write_gpickle(mstp, 'full_noun_graph.pkl')
-
-    # Minimal spanning tree with additional links based on cutoff
-    cutoff = .5
-    mstp = generate_minimum_spanning_tree_plus(noun_graph, corpus_links, cutoff, corpus)
-    nx.write_gpickle(mstp, 'minimal_spanning_tree_cutoff_{}.pkl'.format(cutoff))
-
 
 if LOAD_NEO4J:
 
@@ -471,3 +400,5 @@ if LOAD_NEO4J:
 
 # MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
 ## TO DO: how to only show connections over a certain probability?
+
+# 50 most relevant links, ranked by the

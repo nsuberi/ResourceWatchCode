@@ -1,0 +1,84 @@
+## From Kyle Rader in the neo4j-docker Slack
+
+version: '3'
+services:
+  postgres:
+    image: postgres:9.6
+    volumes:
+      - ~/container-volumes/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: 'cool_password'
+
+  redis:
+    image: redis
+    volumes:
+      - ~/container-volumes/redis:/data
+
+  neo4j:
+    image: neo4j:3.3.1-enterprise
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ~/container-volumes/neo4j/data:/data
+      - ~/container-volumes/neo4j/logs:/logs
+      - ~/container-volumes/neo4j/import:/import
+    environment:
+      NEO4J_AUTH: none
+      NEO4J_dbms_allow__upgrade: "true"
+      NEO4J_dbms_memory_pagecache_size: "2G"
+      NEO4J_dbms_memory_heap_maxSize: "4G"
+      NEO4J_apoc_export_file_enabled: "true"
+
+  neo4j_test:
+    image: neo4j:3.3.1-enterprise
+    ports:
+      - "7575:7474"
+      - "7798:7687"
+    environment:
+      NEO4J_AUTH: none
+
+  web:
+    image: my_rails_app
+    build:
+      context: ./
+      dockerfile: ./Dockerfile.app
+    depends_on:
+      - postgres
+      - redis
+      - neo4j
+    ports:
+      - "3000:80"
+    volumes:
+      - ./:/my_rails_app/
+    command: "bundle exec puma"
+    environment:
+      NEO4J_URL: "http://neo4j:7474"
+      REDIS_URL: 'redis://redis:6379/1'
+      REDIS_PROVIDER: 'REDIS_URL'
+      PORT: 80
+
+  worker:
+    image: my_rails_app
+    depends_on:
+      - redis
+      - neo4j
+    volumes:
+      - ./:/my_rails_app/
+    command: "bundle exec sidekiq"
+    environment:
+      NEO4J_URL: "http://neo4j:7474"
+      REDIS_URL: 'redis://redis:6379/1'
+      REDIS_PROVIDER: 'REDIS_URL'
+
+  tests:
+    image: my_rails_app
+    depends_on:
+      - postgres
+      - neo4j_test
+    volumes:
+      - ./:/my_rails_app
+    command: "bin/tests"
+    environment:
+      RAILS_ENV: test
+      NEO4J_URL: "http://neo4j_test:7474"
