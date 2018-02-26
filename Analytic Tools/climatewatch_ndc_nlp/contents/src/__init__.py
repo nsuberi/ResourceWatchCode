@@ -19,6 +19,7 @@ import json
 import pickle
 import base64
 import re
+import time
 
 import requests as req
 
@@ -34,6 +35,7 @@ PROCESS_DATA = False
 CREATE_LINKS = False
 LOAD_NEO4J = True
 REQUIRE_NEO4J_AUTH = False
+MAX_TRIES = 10
 
 ####
 ## Neo4j Endpoints
@@ -377,7 +379,21 @@ if LOAD_NEO4J:
     #existing_nodes =
 
     logging.info("CREATING GRAPH")
-    country_nodes, noun_nodes = create_graph(nlp_results, corpus, corpus_links)
+    flag = True
+    count = 0
+    while flag:
+        try:
+            country_nodes, noun_nodes = create_graph(nlp_results, corpus, corpus_links)
+            flag = False
+        except:
+            time.sleep(5)
+            count += 1
+            if count < MAX_TRIES:
+                logging.error('Neo4j server not yet ready, trying again')
+            else:
+                logging.error('Not trying any more.')
+                flag = False
+                raise Exception('Could not reach Neo4j server after {} attempts'.format(MAX_TRIES))
 
     logging.info("SAVING NODES")
     with open('data/country_nodes.txt', 'r') as f:
