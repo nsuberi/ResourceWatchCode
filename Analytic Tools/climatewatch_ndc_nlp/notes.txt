@@ -1,0 +1,7 @@
+Examples:
+https://github.com/Ortee/neo4j-docker-express-api
+
+Cypher Queries:
+MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
+# TO DO: how to only show connections over a certain probability?
+# 50 most relevant links, ranked by the
