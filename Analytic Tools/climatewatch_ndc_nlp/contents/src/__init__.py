@@ -20,27 +20,34 @@ import pickle
 import base64
 import re
 import time
+from nltk.stem import PorterStemmer
+from functools import reduce
+from collections import defaultdict
 
 import requests as req
 
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 logging.basicConfig(stream=sys.stderr, level=LOG_LEVEL)
 
-SALIENCE_THRESHOLD = .01
-MINIMUM_COOCCURENCE = .25
+SALIENCE_THRESHOLD = .003
+### With a small co-occurence, will include more links
+# and give insight into structure of the network between .10 and .30
+# for many queries may want to filter by cooccurences .30 or above
+MINIMUM_COOCCURENCE = .10
 MINIMUM_FREQUENCY = 0
 
 DRAW_GRAPHS = False
-PROCESS_DATA = False
+PROCESS_DATA = True
 CREATE_LINKS = False
-LOAD_NEO4J = True
+LOAD_NEO4J = False
 REQUIRE_NEO4J_AUTH = False
 MAX_TRIES = 10
+STEM_NOUNS = False
 
 ####
 ## Neo4j Endpoints
 ####
-NEO4J_API='http://localhost:7474/'
+NEO4J_API='http://climatewatchndcnlp-neo4j-1.inst.f3fe33bf-8737-e28a-901a-c1d32b1a5ec2.us-east-1.triton.zone:7474/'
 NEO4J_AUTH = NEO4J_API+'user/neo4j'
 
 NEO4J_NODE = NEO4J_API+'db/data/node/{node_id}'
@@ -97,12 +104,17 @@ client = language.LanguageServiceClient()
 ###
 ## FILTERS
 ###
-def only_letters(string):
-    prog = re.compile('[A-Z]+')
-    return prog.match(string)
+def only_letters(entity, prog):
+    noun = entity.name
+    #logging.debug('Name: {}'.format(noun))
+    match_q = bool(prog.match(noun))
+    #logging.debug('Matches pattern of letters and spaces: {}'.format(match_q))
+    return match_q
 
 def is_salient(entity):
+    #logging.debug('Echo from chamber of salience')
     return entity.salience > SALIENCE_THRESHOLD
+
 
 # Structure of response: https://cloud.google.com/natural-language/docs/reference/rpc/google.cloud.language.v1#analyzeentitiesresponse
 # Entities is a protocol buffer, not a list
@@ -122,15 +134,35 @@ def run_nlp_algorithm(documents):
 
         # NLP API
         doc_nlp_result = client.analyze_entity_sentiment(document, encoding)
-        lower_case_names = map(lambda entity: entity.name.lower(), doc_nlp_result.entities)
-        filter1 = filter(only_letters , lower_case_names)
-        # filter2 = filter(some_other_func, filter1)
-        filtered_lower_case_names = filter(is_salient , filter1)
 
-        logging.info('salient entities in doc: {}'.format(filtered_lower_case_names))
-        nlp_results[cntry] = filtered_lower_case_names
+        filtered_results1 = list(filter(is_salient , doc_nlp_result.entities))
+        #logging.debug('Salient entities in doc: {}'.format(filtered_results1))
+        #logging.debug('Type of salient resutls: {}'.format(filtered_results1))
+
+        prog = re.compile('^[A-Za-z ]+$')
+        filtered_results2 = list(filter(lambda entity: only_letters(entity, prog) , filtered_results1))
+        #logging.debug('Filter for only letters: {}'.format(filtered_results2))
+
+        # filtered_results = filter(some_other_func, filtered_results)
+
+        lower_case_nouns = sorted(map(lambda entity: entity.name.lower(), filtered_results2))
+        logging.debug('Lower case names: {}'.format(lower_case_nouns))
+
+        if STEM_NOUNS:
+            stemmer = PorterStemmer()
+            stemmed_nouns = list(map(stemmer.stem, lower_case_nouns))
+            unique_nouns = sorted(set(stemmed_nouns))
+        else:
+            unique_nouns = sorted(set(lower_case_nouns))
+
+        logging.info('Unique nouns: {}'.format(unique_nouns))
+        nlp_results[cntry] = unique_nouns
 
     return nlp_results
+
+def build_count(agg, elem):
+    agg[elem]+=1
+    return agg
 
 
 ####
@@ -197,10 +229,11 @@ def createHeaders(_user='neo4j', _pass='neo4j'):
     }
 
 def create_noun_nodes(nouns, nodes={}, _user='neo4j', _pass='neo4j'):
-    for noun in nouns:
+    num_nouns = len(nouns)
+    for ix, noun in enumerate(nouns):
         if noun not in nodes:
             # Create node
-            logging.info('Creating node for {}'.format(noun))
+            logging.info('Creating node for noun {}/{}: {}'.format(ix, num_nouns, noun))
             node_props = {
                 'noun':noun
             }
@@ -218,9 +251,10 @@ def create_noun_nodes(nouns, nodes={}, _user='neo4j', _pass='neo4j'):
     return nodes
 
 def create_country_nodes(countries, nodes={}, _user='neo4j', _pass='neo4j'):
-    for country in countries:
+    num_countries = len(countries)
+    for ix, country in enumerate(countries):
         if country not in nodes:
-            logging.info('Creating node for {}'.format(country))
+            logging.info('Creating node for noun {}/{}: {}'.format(ix, num_countries, country))
             node_props = {
                 'country':country
             }
@@ -249,20 +283,13 @@ def create_relationship(nodeA, nodeB, _type, _data, _user='neo4j', _pass='neo4j'
     return res
 
 def create_graph(nlp_results, corpus, corpus_links):
-    countries = list(nlp_results.keys())
     country_nodes = create_country_nodes(countries)
-    logging.debug(countries)
-    logging.debug(country_nodes[countries[0]])
-
-    num_noun_nodes = len(corpus)
     noun_nodes = create_noun_nodes(corpus)
-    nouns = list(noun_nodes.keys())
-    logging.debug(nouns)
-    logging.debug(noun_nodes[nouns[0]])
 
     # Create Country-Noun Links
     for country, entities in nlp_results.items():
         for entity in entities:
+            logging.info('NEO4J: NOUN GRAPH: Making connections for country: {}'.format(country))
             nodeA = country_nodes[country]['metadata']['id']
             nodeB = noun_nodes[entity]['metadata']['id']
             # TO DO: update ML step to count frequency of mentions
@@ -273,11 +300,12 @@ def create_graph(nlp_results, corpus, corpus_links):
                     'frequency':frequency
                 }
                 evidence = create_relationship(nodeA, nodeB, 'mention', link_data)
-                logging.debug(evidence.text)
+                logging.debug('Evidence from relationship creation: {}'.format(evidence.text))
 
     # Create Noun-Noun Links
+    num_noun_nodes = len(corpus)
     for ix_x in range(num_noun_nodes):
-        logging.info('NEO4J: NOUN GRAPH: Making connections for node {}/{}: {}'.format(ix_x, num_noun_nodes, corpus[ix_x]))
+        logging.info('NEO4J: NOUN GRAPH: Making connections for noun {}/{}: {}'.format(ix_x, num_noun_nodes, corpus[ix_x]))
         for ix_y in range(ix_x):
             nounA = corpus[ix_x]
             nounB = corpus[ix_y]
@@ -288,8 +316,8 @@ def create_graph(nlp_results, corpus, corpus_links):
                 link_data = {
                     'probability':link
                 }
-                evidence = create_relationship(nodeA, nodeB, 'coocurrence', link_data)
-                logging.debug(evidence.text)
+                evidence = create_relationship(nodeA, nodeB, 'cooccurrence', link_data)
+                logging.debug('Evidence from relationship creation: {}'.format(evidence.text))
 
     return country_nodes, noun_nodes
 
@@ -301,119 +329,123 @@ def create_graph(nlp_results, corpus, corpus_links):
 ####
 ## WORKFLOW
 ####
+def main():
+    if PROCESS_DATA:
+        ####
+        ## Load Data
+        ####
 
-if PROCESS_DATA:
-    ####
-    ## Load Data
-    ####
+        logging.info('Corpus:')
+        #cmd = ['git', 'clone', 'https://github.com/mengping/ndc.git', 'data']
+        #subprocess.check_output(' '.join(cmd), shell=True)
+        english_ndcs = glob.glob('data/*EN.html')
+        logging.info(english_ndcs)
+        ndc_texts = convert_full_html_to_text(english_ndcs)
+        logging.info('Number of documents: {}'.format(len(ndc_texts)))
 
-    logging.info('Corpus:')
-    #cmd = ['git', 'clone', 'https://github.com/mengping/ndc.git', 'data']
-    #subprocess.check_output(' '.join(cmd), shell=True)
-    english_ndcs = glob.glob('data/*EN.html')
-    logging.info(english_ndcs)
-    ndc_texts = convert_full_html_to_text(english_ndcs)
-    logging.info('Number of documents: {}'.format(len(ndc_texts)))
+        ####
+        ## Run ML NLP Algorithm
+        ####
 
-    ####
-    ## Run ML NLP Algorithm
-    ####
+        logging.info('Doc Results:')
+        nlp_results = run_nlp_algorithm(ndc_texts)
+        logging.info(nlp_results)
 
-    logging.info('Doc Results:')
-    nlp_results = run_nlp_algorithm(ndc_texts)
-    logging.info(nlp_results)
+        with open('data/nlp_results.txt', 'w') as f:
+            f.write(json.dumps(nlp_results))
 
-    with open('data/nlp_results.txt', 'w') as f:
-        f.write(json.dumps(nlp_results))
+        # Create list of lower case entities, sorted alphabetically
+        corpus = []
+        for cntry, entities in nlp_results.items():
+            for entity in entities:
+                corpus.append(entity)
 
-    # Create list of lower case entities, sorted alphabetically
-    corpus = []
-    for cntry, entities in nlp_results.items():
-        for entity in entities:
-            corpus.append(entity)
-    corpus = list(set(corpus))
-    corpus.sort()
+        corpus_count = dict(reduce(build_count, corpus, defaultdict(int)))
+        corpus = sorted(set(corpus))
 
-    with open('data/entities.txt', 'w') as f:
-        f.write(json.dumps(corpus))
+        with open('data/entities.txt', 'w') as f:
+            f.write(json.dumps(corpus))
 
-if CREATE_LINKS:
-    ####
-    ## Run Statistical Models to structure results
-    ####
+        with open('data/corpus_count.txt', 'w') as f:
+            f.write(json.dumps(corpus_count))
 
-    with open('data/nlp_results.txt', 'r') as f:
-        nlp_results = json.loads(f.read())
+    if CREATE_LINKS:
+        ####
+        ## Run Statistical Models to structure results
+        ####
 
-    with open('data/entities.txt', 'r') as f:
-        corpus = json.loads(f.read())
+        with open('data/nlp_results.txt', 'r') as f:
+            nlp_results = json.loads(f.read())
 
-    logging.info('Conditional Probabilities:')
-    conditional_probabilities = generate_conditional_probabilities(nlp_results, corpus)
+        with open('data/entities.txt', 'r') as f:
+            corpus = json.loads(f.read())
 
-    pickle.dump(conditional_probabilities, open('data/conditional_probabilities.pkl', 'wb'))
+        logging.info('Conditional Probabilities:')
+        conditional_probabilities = generate_conditional_probabilities(nlp_results, corpus)
 
-    logging.info('Corpus Links:')
-    corpus_links = generate_corpus_links(conditional_probabilities, corpus)
+        pickle.dump(conditional_probabilities, open('data/conditional_probabilities.pkl', 'wb'))
 
-    pickle.dump(corpus_links, open('data/corpus_links.pkl', 'wb'))
+        logging.info('Corpus Links:')
+        corpus_links = generate_corpus_links(conditional_probabilities, corpus)
 
+        pickle.dump(corpus_links, open('data/corpus_links.pkl', 'wb'))
 
 
-if LOAD_NEO4J:
 
-    if REQUIRE_NEO4J_AUTH:
-        logging.info("AUTHENTICATING TO NEO4J")
-        neo4j_authenticate()
+    if LOAD_NEO4J:
 
-    logging.info("LOADING DATA")
-    corpus_links = pickle.load(open('data/corpus_links.pkl', 'rb'))
+        if REQUIRE_NEO4J_AUTH:
+            logging.info("AUTHENTICATING TO NEO4J")
+            neo4j_authenticate()
 
-    with open('data/entities.txt', 'r') as f:
-        corpus = json.loads(f.read())
+        logging.info("LOADING DATA")
+        corpus_links = pickle.load(open('data/corpus_links.pkl', 'rb'))
 
-    with open('data/nlp_results.txt', 'r') as f:
-        nlp_results = json.loads(f.read())
+        with open('data/entities.txt', 'r') as f:
+            corpus = json.loads(f.read())
 
-    # TO DO: Fetch all existing nodes to not uploda them twice
-    #existing_nodes =
+        with open('data/nlp_results.txt', 'r') as f:
+            nlp_results = json.loads(f.read())
 
-    logging.info("CREATING GRAPH")
-    flag = True
-    count = 0
-    while flag:
-        try:
-            country_nodes, noun_nodes = create_graph(nlp_results, corpus, corpus_links)
-            flag = False
-        except:
-            time.sleep(5)
-            count += 1
-            if count < MAX_TRIES:
-                logging.error('Neo4j server not yet ready, trying again')
-            else:
-                logging.error('Not trying any more.')
+        # TO DO: Fetch all existing nodes to not uploda them twice
+        #existing_nodes =
+
+        logging.info("CREATING GRAPH")
+        flag = True
+        count = 0
+        while flag:
+            try:
+                country_nodes, noun_nodes = create_graph(nlp_results, corpus, corpus_links)
                 flag = False
-                raise Exception('Could not reach Neo4j server after {} attempts'.format(MAX_TRIES))
+            except:
+                time.sleep(5)
+                count += 1
+                if count < MAX_TRIES:
+                    logging.error('Neo4j server not yet ready, trying again')
+                else:
+                    logging.error('Not trying any more.')
+                    flag = False
+                    raise Exception('Could not reach Neo4j server after {} attempts'.format(MAX_TRIES))
 
-    logging.info("SAVING NODES")
-    with open('data/country_nodes.txt', 'r') as f:
-        f.write(json.dumps(country_nodes))
+        logging.info("SAVING NODES")
+        with open('data/country_nodes.txt', 'w') as f:
+            f.write(json.dumps(country_nodes))
 
-    with open('data/noun_nodes.txt', 'r') as f:
-        f.write(json.dumps(noun_nodes))
+        with open('data/noun_nodes.txt', 'w') as f:
+            f.write(json.dumps(noun_nodes))
+
+    logging.info("FINISHED")
+    # # Extensions
+    # * Extract neighborhoods from pruned graph
+    # * Differentiate between proper and common nouns - highlight proper nouns to discuss the issues they care about
+    # * Incorporate sentiment in some measure
 
 
-# # Extensions
-# * Extract neighborhoods from pruned graph
-# * Differentiate between proper and common nouns - highlight proper nouns to discuss the issues they care about
-# * Incorporate sentiment in some measure
+    ####
+    ## CYPHER QUERIES
+    ####
 
+    # MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
+    ## TO DO: how to only show connections over a certain probability?
 
-####
-## CYPHER QUERIES
-####
-
-# MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
-## TO DO: how to only show connections over a certain probability?
-
-# 50 most relevant links, ranked by the
+    # 50 most relevant links, ranked by the

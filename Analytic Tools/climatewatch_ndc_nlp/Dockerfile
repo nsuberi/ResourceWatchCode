@@ -14,13 +14,13 @@ RUN pip install --upgrade pip && pip install \
     google-cloud-language \
     bs4 \
     lxml \
-    networkx \
     numpy \
-    requests
+    requests \
+    nltk
 
-RUN pip install pyOpenSSL
-RUN apt-get install -y \
-    openssl
+# RUN pip install pyOpenSSL
+# RUN apt-get install -y \
+#    openssl
 
 # copy the application folder inside the container
 RUN mkdir -p /opt/$NAME/data

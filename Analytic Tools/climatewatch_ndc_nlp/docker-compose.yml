@@ -1,30 +1,31 @@
-version: '3'
-services:
-  climatewatch_ndc_nlp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NAME: climatewatch_ndc_nlp
-    volumes:
-      - ./data:/opt/climatewatch_ndc_nlp/data
-    env_file:
-      - .climatewatch.env
-    network_mode: "host"
-    depends_on:
-      - neo4j
+#version: '3'
+#services:
+# climatewatch_ndc_nlp:
+#   # build:
+#   #   context: .
+#   #   dockerfile: Dockerfile
+#   #   args:
+#   #     NAME: climatewatch_ndc_nlp
+#   image: metasuberi/climatewatch_ndc_nlp
+#   # volumes:
+#   #   - ./data:/opt/climatewatch_ndc_nlp/data
+#   env_file:
+#     - .climatewatch.env
+#   #network_mode: "host"
+#   #depends_on:
+#   #  - neo4j
 
-  neo4j:
-    image: neo4j:3.3
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    volumes:
-      - ~/neo4j/data:/data
-      - ~/neo4j/logs:/logs
-    environment:
-      NEO4J_AUTH: none
-      NEO4J_dbms_allow__upgrade: "true"
-      # NEO4J_dbms_memory_pagecache_size: "2G"
-      # NEO4J_dbms_memory_heap_maxSize: "4G"
-      # NEO4J_apoc_export_file_enabled: "true"
+neo4j:
+  image: neo4j:3.3
+  ports:
+    - "7474:7474"
+    - "7687:7687"
+  # volumes:
+  #   - ~/neo4j/data:/data
+  #   - ~/neo4j/logs:/logs
+  environment:
+    NEO4J_AUTH: none
+    NEO4J_dbms_allow__upgrade: "true"
+    # NEO4J_dbms_memory_pagecache_size: "2G"
+    # NEO4J_dbms_memory_heap_maxSize: "4G"
+    # NEO4J_apoc_export_file_enabled: "true"
