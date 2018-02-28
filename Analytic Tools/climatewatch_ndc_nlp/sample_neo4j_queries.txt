@@ -7,6 +7,12 @@ Cypher Queries:
 # Show nouns mentioned by Somalia's NDC
 MATCH (c:Country { country: 'SOM' })-[r:mention]->(n:Noun) RETURN c, r, n
 
+# Show countries mentioning keywords in their NDCs
+MATCH (c:Country)-[r:mention]->(n:Noun {noun: 'agriculture'}) RETURN c, r, n
+MATCH (c:Country)-[r:mention]->(n:Noun {noun: 'landscape'}) RETURN c, r, n
+MATCH (c:Country)-[r:mention]->(n:Noun {noun: 'restoration'}) RETURN c, r, n
+MATCH (c:Country)-[r:mention]->(n:Noun {noun: 'trees'}) RETURN c, r, n
+
 # Show nouns which are linked w/ highest probability
 ### NOTE: Run this and see illustrated the need to clean the data... abbreviations is in all NDCs it seems
 MATCH (n1:Noun)-[r:cooccurrence]-(n2:Noun) RETURN n1, r, n2 ORDER BY r.probability DESC LIMIT 20
