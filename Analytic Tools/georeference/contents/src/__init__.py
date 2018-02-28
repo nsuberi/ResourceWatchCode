@@ -1,5 +1,12 @@
+
+
+
+
+
+
 ####
-## Import required libraries
+## THIS NEEDS TO BE RUN ON A WEB SERVER,
+## NOT PURELY INSIDE A DOCKER CONTAINER LIKE SKETCHED BELOW
 ####
 
 import cartoframes
@@ -19,8 +26,6 @@ import os
 LOG_LEVEL = logging.INFO
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
-GRAB_FROM_RW_API = True
-PROCESS_FROM_URL = True
 DATA_DIR = 'data/'
 CARTO_WRI_RW_USER = os.environ.get(CARTO_WRI_RW_USER, None)
 CARTO_WRI_RW_KEY = os.environ.et(CARTO_WRI_RW_KEY, None)

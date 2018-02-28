@@ -38,8 +38,8 @@ MINIMUM_FREQUENCY = 0
 
 DRAW_GRAPHS = False
 PROCESS_DATA = True
-CREATE_LINKS = False
-LOAD_NEO4J = False
+CREATE_LINKS = True
+LOAD_NEO4J = True
 REQUIRE_NEO4J_AUTH = False
 MAX_TRIES = 10
 STEM_NOUNS = False
@@ -115,6 +115,16 @@ def is_salient(entity):
     #logging.debug('Echo from chamber of salience')
     return entity.salience > SALIENCE_THRESHOLD
 
+def build_doc_count(agg, noun):
+    agg[noun]+=1
+    return agg
+
+def build_intermediate_count(agg, noun_tuple):
+    agg[noun_tuple[0]] += noun_tuple[1]
+    return agg
+
+def build_total_count(agg,noun_count):
+    return reduce(build_intermediate_count, noun_count.items(), agg)
 
 # Structure of response: https://cloud.google.com/natural-language/docs/reference/rpc/google.cloud.language.v1#analyzeentitiesresponse
 # Entities is a protocol buffer, not a list
@@ -151,18 +161,15 @@ def run_nlp_algorithm(documents):
         if STEM_NOUNS:
             stemmer = PorterStemmer()
             stemmed_nouns = list(map(stemmer.stem, lower_case_nouns))
-            unique_nouns = sorted(set(stemmed_nouns))
+            noun_count = dict(reduce(build_doc_count, stemmed_nouns, defaultdict(int)))
         else:
-            unique_nouns = sorted(set(lower_case_nouns))
+            noun_count = dict(reduce(build_doc_count, lower_case_nouns, defaultdict(int)))
 
-        logging.info('Unique nouns: {}'.format(unique_nouns))
-        nlp_results[cntry] = unique_nouns
+        logging.info('Unique nouns: {}'.format(noun_count))
+        nlp_results[cntry] = noun_count
 
     return nlp_results
 
-def build_count(agg, elem):
-    agg[elem]+=1
-    return agg
 
 
 ####
@@ -210,6 +217,10 @@ def generate_corpus_links(conditional_probabilities, corpus):
 
     logging.info('Corpus links: {}'.format(corpus_links))
     return corpus_links
+
+
+
+
 
 
 ####
@@ -271,6 +282,7 @@ def create_country_nodes(countries, nodes={}, _user='neo4j', _pass='neo4j'):
             nodes[country] = node_info
     return nodes
 
+# https://graphaware.com/neo4j/2013/10/11/neo4j-bidirectional-relationships.html
 def create_relationship(nodeA, nodeB, _type, _data, _user='neo4j', _pass='neo4j'):
     relationship_info = {
           "to" : NEO4J_NODE.format(node_id=nodeB),
@@ -283,18 +295,18 @@ def create_relationship(nodeA, nodeB, _type, _data, _user='neo4j', _pass='neo4j'
     return res
 
 def create_graph(nlp_results, corpus, corpus_links):
-    country_nodes = create_country_nodes(countries)
+    country_nodes = create_country_nodes(nlp_results)
     noun_nodes = create_noun_nodes(corpus)
 
     # Create Country-Noun Links
-    for country, entities in nlp_results.items():
-        for entity in entities:
+    for country, noun_count in nlp_results.items():
+        for noun in noun_count:
             logging.info('NEO4J: NOUN GRAPH: Making connections for country: {}'.format(country))
             nodeA = country_nodes[country]['metadata']['id']
-            nodeB = noun_nodes[entity]['metadata']['id']
+            nodeB = noun_nodes[noun]['metadata']['id']
             # TO DO: update ML step to count frequency of mentions
             # of each entity in a country NDC
-            frequency = 1
+            frequency = nlp_results[country][noun]
             if frequency > MINIMUM_FREQUENCY:
                 link_data = {
                     'frequency':frequency
@@ -351,19 +363,17 @@ def main():
         nlp_results = run_nlp_algorithm(ndc_texts)
         logging.info(nlp_results)
 
+        ####
+        ## Tally results
+        ####
+
         with open('data/nlp_results.txt', 'w') as f:
             f.write(json.dumps(nlp_results))
 
-        # Create list of lower case entities, sorted alphabetically
-        corpus = []
-        for cntry, entities in nlp_results.items():
-            for entity in entities:
-                corpus.append(entity)
+        corpus_count = dict(reduce(build_total_count, nlp_results.values(), defaultdict(int)))
+        corpus = sorted(corpus_count.keys())
 
-        corpus_count = dict(reduce(build_count, corpus, defaultdict(int)))
-        corpus = sorted(set(corpus))
-
-        with open('data/entities.txt', 'w') as f:
+        with open('data/corpus.txt', 'w') as f:
             f.write(json.dumps(corpus))
 
         with open('data/corpus_count.txt', 'w') as f:
@@ -377,7 +387,7 @@ def main():
         with open('data/nlp_results.txt', 'r') as f:
             nlp_results = json.loads(f.read())
 
-        with open('data/entities.txt', 'r') as f:
+        with open('data/corpus.txt', 'r') as f:
             corpus = json.loads(f.read())
 
         logging.info('Conditional Probabilities:')
@@ -401,7 +411,7 @@ def main():
         logging.info("LOADING DATA")
         corpus_links = pickle.load(open('data/corpus_links.pkl', 'rb'))
 
-        with open('data/entities.txt', 'r') as f:
+        with open('data/corpus.txt', 'r') as f:
             corpus = json.loads(f.read())
 
         with open('data/nlp_results.txt', 'r') as f:

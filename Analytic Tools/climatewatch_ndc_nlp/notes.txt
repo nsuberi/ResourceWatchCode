@@ -1,7 +1,24 @@
 Examples:
 https://github.com/Ortee/neo4j-docker-express-api
 
+Using APOC w/ Docker, proposed solution requires attached volume:
+https://neo4j-contrib.github.io/neo4j-apoc-procedures/#_using_apoc_with_neo4j_docker_image
+
 Cypher Queries:
 MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
 # TO DO: how to only show connections over a certain probability?
 # 50 most relevant links, ranked by the
+
+# Create links between countries based on number of shared nouns
+MATCH (c1:Country)-->(:Noun)<--(c2:Country) where id(c1) < id(c2) MERGE (c1)-[r:SHARE]-(c2) ON CREATE SET r.weight = 1 ON MATCH SET r.weight = r.weight + 1
+
+# Find topmost related countries
+MATCH (c1:Country)-[r:SHARE]->(c2:Country) RETURN DISTINCT c1, c2, r ORDER BY r.weight DESC LIMIT 20
+
+# View relationships between highly connected countries
+MATCH (c1:Country)-[r1]->(n:Noun)<-[r2]-(c2:Country) where c1.country='NOR' and c2.country='MDA' RETURN c1, n, c2 LIMIT 50
+MATCH (c1:Country)-[r1]->(n:Noun)<-[r2]-(c2:Country) where c1.country='PLW' and c2.country='ATG' RETURN c1, n, c2 LIMIT 50
+
+# Delete everything
+MATCH (n)
+DETACH DELETE n
