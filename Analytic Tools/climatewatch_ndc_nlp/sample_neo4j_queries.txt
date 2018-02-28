@@ -1,24 +1,47 @@
-Examples:
-https://github.com/Ortee/neo4j-docker-express-api
-
-Using APOC w/ Docker, proposed solution requires attached volume:
-https://neo4j-contrib.github.io/neo4j-apoc-procedures/#_using_apoc_with_neo4j_docker_image
+Neo4j uses a query language called Cypher. See some examples below.
+You can also see some sample queries by clicking on the database w/ check mark in the top left corner of the browser
+and selecting one of the tags, "*", "Country", "Noun", "SHARE", "cooccurrence", or "mention"
 
 Cypher Queries:
-MATCH (c:Country { country: 'SOM' })-->(n:Noun) RETURN c, n
-# TO DO: how to only show connections over a certain probability?
-# 50 most relevant links, ranked by the
 
-# Create links between countries based on number of shared nouns
-MATCH (c1:Country)-->(:Noun)<--(c2:Country) where id(c1) < id(c2) MERGE (c1)-[r:SHARE]-(c2) ON CREATE SET r.weight = 1 ON MATCH SET r.weight = r.weight + 1
+# Show nouns mentioned by Somalia's NDC
+MATCH (c:Country { country: 'SOM' })-[r:mention]->(n:Noun) RETURN c, r, n
+
+# Show nouns which are linked w/ highest probability
+### NOTE: Run this and see illustrated the need to clean the data... abbreviations is in all NDCs it seems
+MATCH (n1:Noun)-[r:cooccurrence]-(n2:Noun) RETURN n1, r, n2 ORDER BY r.probability DESC LIMIT 20
+
+### Short-circuit for now by limiting results to links w/ probability < 1
+MATCH (n1:Noun)-[r:cooccurrence]->(n2:Noun) WHERE r.probability < 1 RETURN n1, n2, r ORDER BY r.probability DESC LIMIT 20
 
 # Find topmost related countries
-MATCH (c1:Country)-[r:SHARE]->(c2:Country) RETURN DISTINCT c1, c2, r ORDER BY r.weight DESC LIMIT 20
+MATCH (c1:Country)-[r:SHARE]->(c2:Country) RETURN DISTINCT c1, c2, r ORDER BY r.shared_nouns DESC LIMIT 20
 
 # View relationships between highly connected countries
 MATCH (c1:Country)-[r1]->(n:Noun)<-[r2]-(c2:Country) where c1.country='NOR' and c2.country='MDA' RETURN c1, n, c2 LIMIT 50
 MATCH (c1:Country)-[r1]->(n:Noun)<-[r2]-(c2:Country) where c1.country='PLW' and c2.country='ATG' RETURN c1, n, c2 LIMIT 50
 
+
+#### CAUTION ####
+These don't have to be re-run. Especially the delete commands :)
+
+# Create links between countries based on number of shared nouns
+MATCH (c1:Country)-->(:Noun)<--(c2:Country) where id(c1) < id(c2) MERGE (c1)-[r:SHARE]-(c2) ON CREATE SET r.shared_nouns = 1 ON MATCH SET r.shared_nouns = r.shared_nouns + 1
+
 # Delete everything
 MATCH (n)
 DETACH DELETE n
+
+
+### FUTURE, and DOCUMENTATION ###
+
+How to only show connections over a certain probability?
+
+
+
+
+Neo4j with Docker:
+https://github.com/Ortee/neo4j-docker-express-api
+
+Using APOC w/ Docker, proposed solution requires attached volume:
+https://neo4j-contrib.github.io/neo4j-apoc-procedures/#_using_apoc_with_neo4j_docker_image
