@@ -47,7 +47,7 @@ STEM_NOUNS = False
 ####
 ## Neo4j Endpoints
 ####
-NEO4J_API='http://climatewatchndcnlp-neo4j-1.inst.f3fe33bf-8737-e28a-901a-c1d32b1a5ec2.us-east-1.triton.zone:7474/'
+NEO4J_API=os.environ.get('NEO4J_ENDPOINT', None)
 NEO4J_AUTH = NEO4J_API+'user/neo4j'
 
 NEO4J_NODE = NEO4J_API+'db/data/node/{node_id}'
