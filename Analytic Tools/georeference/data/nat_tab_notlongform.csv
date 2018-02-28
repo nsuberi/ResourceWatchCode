@@ -1,0 +1,16 @@
+rw_id,api_id,country_name_col,country_iso_col
+cit.013,5d269c36-6ccf-4620-838d-431f86c30f69,country,
+cit.020,6d3163f5-4e08-4830-84f1-2c5d76570a82,country_name,country_code
+cli.022,995ec4fe-b3cc-4cf4-bd48-b89d4e3ea072,countryname,iso3v10
+ene.012,d446a52e-c4c1-4e74-ae30-3204620a0365,country_name,country_code
+for.020,03bfb30e-829f-4299-bab9-b2be1b66b5d4,country,
+soc.001,0b9f0100-ce5b-430f-ad8f-3363efa05481,country,
+soc.002,d4ca3cc4-c162-469c-b341-b52284a73eaa,country,
+soc.012,f48541d3-a622-4908-9400-5ef26257ac96,country,
+soc.021,e7582657-9c16-4eb1-89e8-0211d94015c6,country,
+soc.022,773a16a7-3531-4b56-8253-babd15ad7f87,country,
+soc.024,6c6e70e7-5a19-46f2-9d95-34789fd20adc,country,
+soc.026,0be2ce12-79b3-434b-b557-d6ea92d787fe,country,
+soc.045,2cc29514-b97a-4103-92b1-c8c8e9268cd8,country,
+soc.055,795a7ceb-ebc1-4479-95ad-76ea4d045ad3,country,iso
+soc.067,1de2af1c-5e5e-4a33-b8f1-8c8f9d000e49,country,
