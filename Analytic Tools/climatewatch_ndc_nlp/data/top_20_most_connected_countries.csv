@@ -1,21 +1,21 @@
-c1,c2,r
-country:Norway,country:Moldova,weight:108
-country:Seycelles,country:Palau,weight:104
-country:Chad,country:Central African Republic,weight:96
-country:Antigua and Barbuda,country:Palau,weight:96
-country:Seycelles,country:Antigua and Barbuda,weight:96
-country:Chad,country:Niger,weight:92
-country:Malawi,country:Mozambique,weight:88
-country:Central African Republic,country:Niger,weight:88
-country:Korea, Republic of,country:Palau,weight:84
-country:San Marino,country:Palau,weight:84
-country:Pakistan,country:Zambia,weight:84
-country:Belarus,country:Togo,weight:84
-country:San Marino,country:Norway,weight:84
-country:Saint Lucia,country:Zambia,weight:80
-country:Tuvalu,country:San Marino,weight:80
-country:Malawi,country:Zambia,weight:80
-country:Belarus,country:Tajikistan,weight:80
-country:Belarus,country:Central African Republic,weight:80
-country:Tuvalu,country:Palau,weight:80
-country:Mozambique,country:Zambia,weight:80
+"""c1""","""c2""","""r"""
+"{""country"":""NOR""}","{""country"":""MDA""}","{""shared_nouns"":27}"
+"{""country"":""SYC""}","{""country"":""PLW""}","{""shared_nouns"":26}"
+"{""country"":""TCD""}","{""country"":""CAF""}","{""shared_nouns"":24}"
+"{""country"":""ATG""}","{""country"":""PLW""}","{""shared_nouns"":24}"
+"{""country"":""ATG""}","{""country"":""SYC""}","{""shared_nouns"":24}"
+"{""country"":""TCD""}","{""country"":""NER""}","{""shared_nouns"":23}"
+"{""country"":""MWI""}","{""country"":""MOZ""}","{""shared_nouns"":22}"
+"{""country"":""CAF""}","{""country"":""NER""}","{""shared_nouns"":22}"
+"{""country"":""KOR""}","{""country"":""PLW""}","{""shared_nouns"":21}"
+"{""country"":""NOR""}","{""country"":""SMR""}","{""shared_nouns"":21}"
+"{""country"":""PAK""}","{""country"":""ZMB""}","{""shared_nouns"":21}"
+"{""country"":""SMR""}","{""country"":""PLW""}","{""shared_nouns"":21}"
+"{""country"":""TGO""}","{""country"":""BLR""}","{""shared_nouns"":21}"
+"{""country"":""STP""}","{""country"":""TGO""}","{""shared_nouns"":20}"
+"{""country"":""LCA""}","{""country"":""ZMB""}","{""shared_nouns"":20}"
+"{""country"":""VUT""}","{""country"":""MWI""}","{""shared_nouns"":20}"
+"{""country"":""MOZ""}","{""country"":""ZMB""}","{""shared_nouns"":20}"
+"{""country"":""TGO""}","{""country"":""ZMB""}","{""shared_nouns"":20}"
+"{""country"":""KAZ""}","{""country"":""BLR""}","{""shared_nouns"":20}"
+"{""country"":""LSO""}","{""country"":""ATG""}","{""shared_nouns"":20}"
