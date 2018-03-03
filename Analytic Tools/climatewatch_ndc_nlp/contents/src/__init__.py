@@ -29,11 +29,11 @@ import requests as req
 LOG_LEVEL = logging.INFO
 logging.basicConfig(stream=sys.stderr, level=LOG_LEVEL)
 
-SALIENCE_THRESHOLD = .003
+SALIENCE_THRESHOLD = .002
 ### With a small co-occurence, will include more links
 # and give insight into structure of the network between .10 and .30
 # for many queries may want to filter by cooccurences .30 or above
-MINIMUM_COOCCURENCE = .10
+MINIMUM_COOCCURENCE = .35
 MINIMUM_FREQUENCY = 0
 
 DRAW_GRAPHS = False
@@ -43,6 +43,15 @@ LOAD_NEO4J = True
 REQUIRE_NEO4J_AUTH = False
 MAX_TRIES = 10
 STEM_NOUNS = False
+
+THROWAWAY_NOUNS = ['html', 'country', 'contribution', 'contributions', 'impacts',
+'reduction', 'countries', 'parties', 'target', 'level', 'measures', 'actions', 'efforts',
+'implementation', 'decisions', 'decision', 'agreement', 'commitment', 'objective',
+'context', 'circumstances', 'commitments', 'changes', 'increase', 'objectives',
+'line', 'document', 'part', 'areas', 'one', 'goal', 'submission', 'introduction',
+'conclusion', 'appendix', 'use', 'nation', 'terms', 'coverage', 'territory', 'view',
+'manner', 'basis', 'conditions', 'change', 'rate', 'total', 'summary', 'scope', 'all',
+'session', 'report', 'importance', 'regard', 'type']
 
 ####
 ## Neo4j Endpoints
@@ -115,6 +124,9 @@ def is_salient(entity):
     #logging.debug('Echo from chamber of salience')
     return entity.salience > SALIENCE_THRESHOLD
 
+def is_not_meaningless(noun):
+    return noun not in THROWAWAY_NOUNS
+
 def build_doc_count(agg, noun):
     agg[noun]+=1
     return agg
@@ -135,10 +147,9 @@ def run_nlp_algorithm(documents):
     for cntry, doc in documents.items():
         logging.info("Working on NDC for {}".format(cntry))
 
-        # ONLY RUNNING SUBSECTION OF DOC, first 5000 characters
-        # Allows for "HTML" type
+        # Allows for "HTML" type as well
         document = types.Document(
-                content=doc[:5000].encode('utf-8'),
+                content=doc.encode('utf-8'),
                 type=enums.Document.Type.PLAIN_TEXT)
         encoding = enums.EncodingType.UTF32
 
@@ -153,9 +164,9 @@ def run_nlp_algorithm(documents):
         filtered_results2 = list(filter(lambda entity: only_letters(entity, prog) , filtered_results1))
         #logging.debug('Filter for only letters: {}'.format(filtered_results2))
 
-        # filtered_results = filter(some_other_func, filtered_results)
+        lower_case_nouns = list(map(lambda entity: entity.name.lower(), filtered_results2))
+        lower_case_nouns = sorted(filter(is_not_meaningless, lower_case_nouns))
 
-        lower_case_nouns = sorted(map(lambda entity: entity.name.lower(), filtered_results2))
         logging.debug('Lower case names: {}'.format(lower_case_nouns))
 
         if STEM_NOUNS:
