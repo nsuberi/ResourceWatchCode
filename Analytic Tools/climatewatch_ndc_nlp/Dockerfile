@@ -16,7 +16,8 @@ RUN pip install --upgrade pip && pip install \
     lxml \
     numpy \
     requests \
-    nltk
+    nltk \
+    neo4jrestclient
 
 # RUN pip install pyOpenSSL
 # RUN apt-get install -y \
