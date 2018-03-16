@@ -1,0 +1,170 @@
+countryName,countryCode,byIncomeTXT,byRegionTXT,g20TXT,OECDTXT,LDCsTXT,LandlockedCountriesTXT,SIDSTXT,OPECTXT,KyotoAnnex
+Afghanistan,AFG,Low income,South Asia,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Albania,ALB,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Algeria,DZA,Upper middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Andorra,AND,High income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Angola,AGO,Upper middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Antigua and Barbuda,ATG,High income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Argentina,ARG,Upper middle income,Latin America & Caribbean,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Armenia,ARM,Lower middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Australia,AUS,High income,East Asia & Pacific,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Azerbaijan,AZE,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Bahamas,BHS,High income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Bahrain,BHR,High income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Bangladesh,BGD,Lower middle income,South Asia,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Barbados,BRB,High income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Belarus,BLR,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Annex I
+Belize,BLZ,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Benin,BEN,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Bhutan,BTN,Lower middle income,South Asia,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Bolivia,BOL,Lower middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Bosnia and Herzegovina,BIH,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Botswana,BWA,Upper middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Brazil,BRA,Upper middle income,Latin America & Caribbean,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Brunei Darussalam,BRN,High income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Burkina Faso,BFA,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Burundi,BDI,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Cabo Verde,CAR,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Cambodia,KHM,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Cameroon,CMR,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Canada,CAN,High income,North America,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Central African Republic,CAF,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Chad,TCD,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Chile,CHL,High income,Latin America & Caribbean,not G20,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+China,CHN,Upper middle income,East Asia & Pacific,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Colombia,COL,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Comoros,COM,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Congo,COG,Low income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Cook Islands,COK,High income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Costa Rica,CRI,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Cote dIvoire,CIV,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Cuba,CUB,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Democratic Republic of Congo,COD,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Djibouti,DJI,Lower middle income,Middle East & North Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Dominica,DMA,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Dominican Republic,DOM,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Democratic People's Republic of Korea,PRK,Low income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Ecuador,ECU,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Egypt,EGY,Lower middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+El Salvador,SLV,Lower middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Equatorial Guinea,GNQ,Upper middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Eritrea,ERI,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Ethiopia,ETH,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+European Union,EU,High income,Europe & Central Asia,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Fiji,FJI,Upper middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Gabon,GAB,Upper middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Gambia,GMB,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Georgia,GEO,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Ghana,GHA,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Grenada,GRD,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Guatemala,GTM,Lower middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Guinea,GIN,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Guinea Bissau,GNB,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Guyana,GUY,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Haiti,HTI,Low income,Latin America & Caribbean,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Honduras,HND,Lower middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Iceland,ISL,High income,Europe & Central Asia,not G20,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+India,IND,Lower middle income,South Asia,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Indonesia,IDN,Lower middle income,East Asia & Pacific,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Iran,IRN,Upper middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Iraq,IRQ,Upper middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Israel,ISR,High income,Middle East & North Africa,not G20,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Jamaica,JAM,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Japan,JPN,High income,East Asia & Pacific,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Jordan,JOR,Upper middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Kazakhstan,KAZ,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Kenya,KEN,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Kiribati,KIR,Lower middle income,East Asia & Pacific,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Kuwait,KWT,High income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Kyrgyzstan,KGZ,Lower middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Lao Peoples Democratic Republic,LAO,Lower middle income,East Asia & Pacific,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Lebanon,LBN,Upper middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Lesotho,LSO,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Liberia,LBR,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Libya,LBY,Upper middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Liechtenstein,LIE,High income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Annex I
+The Former Yugoslav Republic of Macedonia,MKD,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Madagascar,MDG,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Malawi,MWI,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Malaysia,MYS,Upper middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Maldives,MDV,Upper middle income,South Asia,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Mali,MLI,Low income,East Asia & Pacific,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Marshall Islands,MHL,Upper middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Mauritania,MRT,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Mauritius,MUS,Upper middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Mexico,MEX,Upper middle income,Latin America & Caribbean,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Micronesia,FSM,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Republic of Moldova,MDA,Lower middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Monaco,MCO,High income,Europe & Central Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Mongolia,MNG,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Montenegro,MNE,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Morocco,MAR,Lower middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Mozambique,MOZ,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Myanmar,MMR,Lower middle income,East Asia & Pacific,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Namibia,NAM,Upper middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Nauru,NRU,High income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Nepal,NPL,Low income,South Asia,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+New Zealand,NZL,High income,East Asia & Pacific,not G20,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Nicaragua,NIC,Lower middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Niger,NER,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Nigeria,NGA,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Niue,NIU,High income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Norway,NOR,High income,Europe & Central Asia,not G20,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Oman,OMN,High income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Pakistan,PAK,Lower middle income,South Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Palau ,PLW,Upper middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Palestine,PSE,Lower middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Panama,PAN,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Papua New Guinea,PNG,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Paraguay,PRY,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Peru,PER,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Philippines,PHL,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Qatar,QAT,High income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Russian Federation,RUS,Upper middle income,Europe & Central Asia,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Rwanda,RWA,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Saint Lucia,LCA,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Saint Kitts and Nevis,KNA,High income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Saint Vincent and the Grenadines,VCT,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Samoa,WSM,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+San Marino,SMR,High income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Sao Tome and Principe,STP,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Saudi Arabia,SAU,High income,Middle East & North Africa,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Senegal,SEN,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Serbia,SRB,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Seychelles,SYC,High income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Sierra Leone,SLE,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Singapore,SGP,High income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Solomon Islands,SLB,Lower middle income,East Asia & Pacific,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Somalia,SOM,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+South Africa,ZAF,Upper middle income,Sub-Saharan Africa,G20 member,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+South Korea,KOR,High income,East Asia & Pacific,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+South Sudan,SSD,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Sri Lanka,LKA,Lower middle income,South Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Sudan,SDN,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Suriname,SUR,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Swaziland,SWZ,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Switzerland,CHE,High income,Europe & Central Asia,not G20,OECD members,non LDCs,Landlocked countries,non SIDS,non OPEC,Annex I
+Syria,SYR,Lower middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Tajikistan,TJK,Lower middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+United Republic of Tanzania,TZA,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Thailand,THA,Upper middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Timor Leste,TLS,Lower middle income,East Asia & Pacific,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Togo,TGO,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Tonga,TON,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Trinidad and Tobago,TTO,High income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Tunisia,TUN,Lower middle income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Turkey,TUR,Upper middle income,Europe & Central Asia,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Turkmenistan,TKM,Upper middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Tuvalu,TUV,Upper middle income,East Asia & Pacific,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+United States of America,USA,High income,North America,G20 member,OECD members,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+Uganda,UGA,Low income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Ukraine,UKR,Lower middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Annex I
+United Arab Emirates,ARE,High income,Middle East & North Africa,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Uruguay,URY,High income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Uzbekistan,UZB,Lower middle income,Europe & Central Asia,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Vanuatu,VUT,Lower middle income,East Asia & Pacific,not G20,non-OECD,LDC,Coastal and island countries,SIDS,non OPEC,Non-Annex I
+Venezuela,VEN,Upper middle income,Latin America & Caribbean,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,OPEC members,Non-Annex I
+Vietnam,VNM,Lower middle income,East Asia & Pacific,not G20,non-OECD,non LDCs,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Yemen,YEM,Lower middle income,Middle East & North Africa,not G20,non-OECD,LDC,Coastal and island countries,non SIDS,non OPEC,Non-Annex I
+Zambia,ZMB,Lower middle income,Sub-Saharan Africa,not G20,non-OECD,LDC,Landlocked countries,non SIDS,non OPEC,Non-Annex I
+Zimbabwe,ZWE,Low income,Sub-Saharan Africa,not G20,non-OECD,non LDCs,Landlocked countries,non SIDS,non OPEC,Non-Annex I
