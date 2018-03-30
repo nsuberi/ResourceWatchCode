@@ -71,6 +71,69 @@ def main():
         with open('tifs/{}'.format(datum), 'wb') as f:
             ftp.retrbinary('RETR ' + datum, f.write)
 
+    TIF_DATA_DIR = 'tifs'
+    os.chdir(TIF_DATA_DIR)
+    tifs = [f for f in os.listdir('.') if os.path.splitext(f)[1] == '.tif']
+    logging.info('TIFFs: {}'.format(tifs))
+
+    ###
+    # To upload to GEE, need to specify the date
+    # Date formats vary by provider, some common ones include:
+    ###
+    ### Constant year
+
+    DATE_FORMAT = '%Y' # Year
+    def getDate(asset):
+        return '2017'
+
+    ### Grab dates, create datestamps, upload through GEE
+
+    dates = list(map(getDate, tifs))
+    datestamps = [datetime.strptime(date, DATE_FORMAT)
+                  for date in dates]
+
+    asset_names = [ic(t) for t in tifs]
+    eeUtil.uploadAssets(tifs, asset_names, GS_FOLDER, datestamps, public=True, timeout=30000)
+
+
+
+    ###
+    # Upload to RW API
+    # For this and writing in the SLDs, could use Brookie's class
+    # Would match the SLD name to the tif name, pair them and upload (like a zip)
+    ###
+
+    API_TOKEN = os.environ.get('rw_api_token', None)
+
+    def createHeaders():
+        return {
+            'content-type': "application/json",
+            'authorization': "Bearer {}".format( AUTH_TOKEN )
+        }
+
+    def upload_ic_to_backoffice(wri_id, imageCollectionName, datasetName):
+
+        ds_specs = {
+            "connectorType":"rest",
+            "provider":"gee",
+            "tableName":imageCollectionName,
+            "application":["rw"],
+            "geoInfo":True,
+            "type":"raster",
+            "name":"{}_{}".format(wri_id, datasetName)
+        }
+
+        create_res = req.request("POST",
+                          'https://staging-api.globalforestwatch.org/v1/dataset',
+                          data=json.dumps(ds_specs),
+                          headers = createHeaders())
+
+        logging.info(create_res.text)
+
+        return create_res.json()['data']['id']
+
+    rw_id = upload_ic_to_backoffice('foo.054', EE_COLLECTION, 'Soil Organic Carbon')
+
 
 ###
 # Priority 2: Access pre-made SLDs for loading to layers ###
@@ -89,31 +152,12 @@ def main():
         with open('slds/{}'.format(sld), 'wb') as f:
             ftp.retrbinary('RETR ' + sld, f.write)
 
-
-
     ftp.close()
 
-    TIF_DATA_DIR = 'tifs'
-    os.chdir(TIF_DATA_DIR)
-    tifs = [f for f in os.listdir('.') if os.path.splitext(f)[1] == '.tif']
-    logging.info('TIFFs: {}'.format(tifs))
 
     ###
-    # To upload to GEE, need to specify the date
-    # Date formats vary by provider, some common ones include:
+    # Consult Brookie on how to use his class,
+    # inject the xml retrieved from FTP and attach to correct layer
     ###
-    ### Constant year
 
-    DATE_FORMAT = '%Y' # Year
-    def getDate(asset):
-        return '2017'
-
-
-    ### Grab dates, create datestamps, upload through GEE
-
-    dates = list(map(getDate, tifs))
-    datestamps = [datetime.strptime(date, DATE_FORMAT)
-                  for date in dates]
-
-    asset_names = [ic(t) for t in tifs]
-    eeUtil.uploadAssets(tifs, asset_names, GS_FOLDER, datestamps, public=True, timeout=30000)
+    
