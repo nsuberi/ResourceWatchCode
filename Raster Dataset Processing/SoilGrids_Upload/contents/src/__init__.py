@@ -17,8 +17,8 @@ def main():
     # Configure the ImageCollection you're going to add the rasters to
     ###
 
-    GS_FOLDER = 'wat_038_modis_surface_water'
-    EE_COLLECTION = 'wat_038_modis_surface_water'
+    GS_FOLDER = 'foo_054_soil_organic_carbon'
+    EE_COLLECTION = 'foo_054_soil_organic_carbon'
 
     def ic(asset):
         return '{}/{}'.format(EE_COLLECTION, os.path.splitext(asset)[0])
@@ -34,21 +34,11 @@ def main():
 
     existing_files = checkCreateCollection(EE_COLLECTION)
 
+
+
     ###
     # Obtain names of files to upload
-    # Load file names for tifs and netcdfs
     ###
-
-    # TIF_DATA_DIR = 'tifs'
-    # os.chdir(TIF_DATA_DIR)
-    # tifs = os.listdir('.') #[f for f in os.listdir('.') if os.path.splitext(f)[1] == '.tif']
-    # logging.info('TIFFs: {}'.format(tifs))
-    #
-    # NC_DATA_DIR = 'ncs'
-    # os.chdir(NC_DATA_DIR)
-    # ncs = os.listdir('.') #[f for f in os.listdir('.') if os.path.splitext(f)[1] == '.tif']
-    # logging.info('NetCDFs: {}'.format(ncs))
-
 
 ###
 # Priority 1: Load files to GEE and register w/ RW API
@@ -78,7 +68,7 @@ def main():
     #for datum in data:
     for datum in soilcarbon:
         logging.info('Processing {}'.format(datum))
-        with open('ncs/{}'.format(datum), 'wb') as f:
+        with open('tifs/{}'.format(datum), 'wb') as f:
             ftp.retrbinary('RETR ' + datum, f.write)
 
 
@@ -96,34 +86,22 @@ def main():
 
     for sld in slds:
         logging.info('Processing {}'.format(sld))
-        f = open(os.path.join(os.getcwd(), sld), 'wb')
-        ftp.retrbinary('RETR ' + sld, f.write)
+        with open('slds/{}'.format(sld), 'wb') as f:
+            ftp.retrbinary('RETR ' + sld, f.write)
+
+
 
     ftp.close()
 
-    # Q: Is this possible?
-    ### reduce(lambda obj, elem: obj.append(elem),  ftp.retrlines('NLST'), [])
-
+    TIF_DATA_DIR = 'tifs'
+    os.chdir(TIF_DATA_DIR)
+    tifs = [f for f in os.listdir('.') if os.path.splitext(f)[1] == '.tif']
+    logging.info('TIFFs: {}'.format(tifs))
 
     ###
     # To upload to GEE, need to specify the date
     # Date formats vary by provider, some common ones include:
     ###
-
-    ### Date encoded in asset name
-
-    DATE_FORMAT = '%Y%j' # Year and week of year
-    def getDate(asset):
-        return asset[-7:]
-
-    DATE_FORMAT = '%Y-%m-%d' # Year, month, day
-    def getDate(asset):
-        return asset[-10:]
-
-    DATE_FORMAT = '%Y' # Year
-    def getDate(asset):
-        return asset[-4:]
-
     ### Constant year
 
     DATE_FORMAT = '%Y' # Year
