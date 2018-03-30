@@ -69,10 +69,10 @@ def main():
     logging.info("SoilCarbon data:")
     logging.info(soilcarbon)
 
-    for d in soilcarbon:
-        logging.info('Processing {}'.format(f))
-        with open('tifs/{}'.format(d), 'wb') as f:
-            ftp.retrbinary('RETR ' + d, f.write)
+    for data in soilcarbon:
+        logging.info('Processing {}'.format(data))
+        with open('tifs/{}'.format(data), 'wb') as f:
+            ftp.retrbinary('RETR data/recent/' + data, f.write)
 
     os.chdir('tifs')
     tifs = os.listdir('.')
@@ -134,6 +134,8 @@ def main():
 
         return create_res.json()['data']['id']
 
+
+
     rw_id = upload_ic_to_backoffice('foo.054', EE_COLLECTION, 'Soil Organic Carbon')
 
 
@@ -152,7 +154,7 @@ def main():
     for sld in slds:
         logging.info('Processing {}'.format(sld))
         with open('slds/{}'.format(sld), 'wb') as f:
-            ftp.retrbinary('RETR ' + sld, f.write)
+            ftp.retrbinary('RETR legends/' + sld, f.write)
 
     ftp.close()
 
