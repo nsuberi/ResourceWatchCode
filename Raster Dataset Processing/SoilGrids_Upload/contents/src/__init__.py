@@ -3,6 +3,7 @@ import sys
 import eeUtil
 import os
 from datetime import datetime
+import urllib.request
 
 def main():
 
@@ -69,27 +70,55 @@ def main():
     logging.info("SoilCarbon data:")
     logging.info(soilcarbon)
 
+
+    ###
+
+    ## Download with ftplib
     # Track progress:
     # https://stackoverflow.com/questions/21343029/how-do-i-keep-track-of-percentage-downloaded-with-ftp-retrbinary
+    # def download_file(f, block, totalSize):
+    #     global sizeWritten
+    #     f.write(block)
+    #     sizeWritten += len(block)
+    #     logging.info("{}= size written, {}= total size".format(sizeWritten, totalSize))
+    #     percentComplete = sizeWritten / totalSize
+    #     logging.info("{} percent complete".format(percentComplete))
+    #
+    # for data in soilcarbon:
+    #     logging.info('Processing {}'.format(data))
+    #     totalSize = ftp.size('data/recent/' + data)
+    #     sizeWritten = 0
+    #     with open('tifs/{}'.format(data), 'wb') as f:
+    #         ftp.retrbinary('RETR data/recent/' + data, lambda block: download_file(f, block, totalSize))
 
-    def download_file(f, block, totalSize):
-        global sizeWritten
-        f.write(block)
-        sizeWritten += len(block)
-        logging.info("{}= size written, {}= total size".format(sizeWritten, totalSize))
-        percentComplete = sizeWritten / totalSize
-        logging.info("{} percent complete".format(percentComplete))
+    ## Download with urllib
 
-    for data in soilcarbon:
-        logging.info('Processing {}'.format(data))
-        totalSize = ftp.size('data/recent/' + data)
-        sizeWritten = 0
-        with open('tifs/{}'.format(data), 'wb') as f:
-            ftp.retrbinary('RETR data/recent/' + data, lambda block: download_file(f, block, totalSize))
+    SOURCE_URL = 'ftp://ftp.soilgrids.org/data/recent/{f}'
 
-    os.chdir('tifs')
-    tifs = os.listdir('.')
-    logging.info('TIFFs: {}'.format(tifs))
+    def getUrl(lvl):
+        return SOURCE_URL.format(f=lvl)
+
+    def getFilename(lvl):
+        return 'tifs/{}'.format(lvl)
+
+    def fetch(files):
+        '''Fetch files by datestamp'''
+        tifs = []
+        for lvl in files:
+            url = getUrl(lvl)
+            f = getFilename(lvl)
+            logging.debug('Fetching {}'.format(url))
+            # New data may not yet be posted
+            try:
+                urllib.request.urlretrieve(url, f)
+                tifs.append(f)
+            except Exception as e:
+                logging.warning('Could not fetch {}'.format(url))
+                logging.debug(e)
+        return tifs
+
+
+    tifs = fetch(soilcarbon)
 
     ###
     # To upload to GEE, need to specify the date
