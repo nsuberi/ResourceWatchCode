@@ -48,9 +48,10 @@ def main():
     ftp = FTP('ftp.soilgrids.org')
     ftp.login()
 
-    lines = []
-    ftp.retrlines('NLST', lines.append)
-
+    folders = []
+    ftp.retrlines('NLST', folders.append)
+    logging.info("Folders:")
+    logging.info(folders)
 
     data = []
     ftp.retrlines('NLST data/recent', data.append)
@@ -60,20 +61,21 @@ def main():
 
     import re
 
+    # Matches soil carbon for different depths:
+    # 0, 5, 15, 30, 60, 100, 200 cm depth tifs available,
+    # labeled sl1 - sl7
     pattern = re.compile('OCDENS_M_sl._250m.tif')
     soilcarbon = [f for f in data if pattern.match(f)]
     logging.info("SoilCarbon data:")
     logging.info(soilcarbon)
 
-    #for datum in data:
-    for datum in soilcarbon:
-        logging.info('Processing {}'.format(datum))
-        with open('tifs/{}'.format(datum), 'wb') as f:
-            ftp.retrbinary('RETR ' + datum, f.write)
+    for d in soilcarbon:
+        logging.info('Processing {}'.format(f))
+        with open('tifs/{}'.format(d), 'wb') as f:
+            ftp.retrbinary('RETR ' + d, f.write)
 
-    TIF_DATA_DIR = 'tifs'
-    os.chdir(TIF_DATA_DIR)
-    tifs = [f for f in os.listdir('.') if os.path.splitext(f)[1] == '.tif']
+    os.chdir('tifs')
+    tifs = os.listdir('.')
     logging.info('TIFFs: {}'.format(tifs))
 
     ###
@@ -159,5 +161,3 @@ def main():
     # Consult Brookie on how to use his class,
     # inject the xml retrieved from FTP and attach to correct layer
     ###
-
-    
