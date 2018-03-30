@@ -14,7 +14,9 @@ RUN pip install -e git+https://github.com/fgassert/eeUtil#egg=eeUtil
 RUN mkdir -p /opt/$NAME/rasters
 WORKDIR /opt/$NAME/
 COPY contents/ .
-VOLUME /opt/$NAME/rasters
+
+VOLUME /opt/$NAME/tifs
+VOLUME /opt/$NAME/ncs
 
 RUN groupadd -r $NAME && useradd -r -g $NAME $NAME
 RUN chown -R $NAME:$NAME /opt/$NAME/
