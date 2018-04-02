@@ -82,9 +82,7 @@ def main():
     # Track progress:
     # https://stackoverflow.com/questions/21343029/how-do-i-keep-track-of-percentage-downloaded-with-ftp-retrbinary
 
-    global sizeWritten
     def download_file(f, block, totalSize):
-
         f.write(block)
         sizeWritten += len(block)
         logging.info("{}= size written, {}= total size".format(sizeWritten, totalSize))
@@ -92,6 +90,7 @@ def main():
         logging.info("{} percent complete".format(percentComplete))
 
     for data in soilcarbon:
+        global sizeWritten
         logging.info('Processing {}'.format(data))
         totalSize = ftp.size('data/recent/' + data)
         sizeWritten = 0
