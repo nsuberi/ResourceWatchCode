@@ -82,20 +82,19 @@ def main():
     # Track progress:
     # https://stackoverflow.com/questions/21343029/how-do-i-keep-track-of-percentage-downloaded-with-ftp-retrbinary
 
-    def download_file(f, block, totalSize):
+    def download_file(f, block, totalSize, sizeWritten):
         f.write(block)
-        sizeWritten += len(block)
-        logging.info("{}= size written, {}= total size".format(sizeWritten, totalSize))
-        percentComplete = sizeWritten / totalSize
+        sizeWritten.append(len(block))
+        logging.info("{} = size written, {} = total size".format(sum(sizeWritten), totalSize))
+        percentComplete = sum(sizeWritten) / totalSize
         logging.info("{} percent complete".format(percentComplete))
 
     for data in soilcarbon:
-        global sizeWritten
         logging.info('Processing {}'.format(data))
         totalSize = ftp.size('data/recent/' + data)
-        sizeWritten = 0
+        sizeWritten = []
         with open('tifs/{}'.format(data), 'wb') as f:
-            ftp.retrbinary('RETR data/recent/' + data, lambda block: download_file(f, block, totalSize))
+            ftp.retrbinary('RETR data/recent/' + data, lambda block: download_file(f, block, totalSize, sizeWritten))
 
     ###
     ## Download with urllib
