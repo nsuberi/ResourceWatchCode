@@ -65,7 +65,9 @@ def main():
     # Matches soil carbon for different depths:
     # 0, 5, 15, 30, 60, 100, 200 cm depth tifs available,
     # labeled sl1 - sl7
-    pattern = re.compile('OCDENS_M_sl._250m.tif')
+
+    # http://data.isric.org/geonetwork/srv/eng/catalog.search;jsessionid=A5137293CC6B3D96CBA35808CA155341#/metadata/98062ae9-911d-4e04-80a9-e4b480f87799
+    pattern = re.compile('OCSTHA_M_sd._250m.tif')
     soilcarbon = [f for f in data if pattern.match(f)]
     logging.info("SoilCarbon data:")
     logging.info(soilcarbon)
