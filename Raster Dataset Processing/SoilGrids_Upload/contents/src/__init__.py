@@ -81,8 +81,10 @@ def main():
     ## Download with ftplib
     # Track progress:
     # https://stackoverflow.com/questions/21343029/how-do-i-keep-track-of-percentage-downloaded-with-ftp-retrbinary
+
+    global sizeWritten
     def download_file(f, block, totalSize):
-        global sizeWritten
+
         f.write(block)
         sizeWritten += len(block)
         logging.info("{}= size written, {}= total size".format(sizeWritten, totalSize))
