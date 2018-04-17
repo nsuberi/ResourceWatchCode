@@ -16,8 +16,6 @@ __pycache__/
 *.png
 *.PNG
 *.pkl
-*.csv
-*.txt
 
 # C extensions
 *.so
