@@ -6,6 +6,9 @@ __pycache__/
 # Mac files
 *.DS_Store
 
+# passwords
+*.env
+
 # data files
 *.tif
 *.nc
@@ -13,6 +16,8 @@ __pycache__/
 *.png
 *.PNG
 *.pkl
+*.csv
+*.txt
 
 # C extensions
 *.so
